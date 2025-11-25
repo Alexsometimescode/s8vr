@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/app/Dashboard';
-import { InvoiceBuilder, ClientInvoiceView } from './components/app/InvoiceBuilder';
+import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import { ViewState, Invoice } from './types';
 
 const App: React.FC = () => {
@@ -22,7 +23,13 @@ const App: React.FC = () => {
       dueDate: '2023-08-15',
       amount: 2400,
       remindersEnabled: true,
-      theme: 'corporate'
+      theme: 'corporate',
+      logs: [
+        { id: '1', date: '2023-08-01T09:00:00', type: 'sent', message: 'Invoice #1001 sent to client' },
+        { id: '2', date: '2023-08-01T10:15:00', type: 'opened', message: 'Client opened invoice' },
+        { id: '3', date: '2023-08-16T09:00:00', type: 'reminder', message: 'Automated Reminder (Friendly) sent' },
+        { id: '4', date: '2023-08-23T09:00:00', type: 'reminder', message: 'Automated Reminder (Casual) sent' },
+      ]
     },
     {
       id: '2',
@@ -35,7 +42,11 @@ const App: React.FC = () => {
       dueDate: '2023-09-30',
       amount: 850,
       remindersEnabled: true,
-      theme: 'creative'
+      theme: 'creative',
+      logs: [
+        { id: '1', date: '2023-09-15T14:30:00', type: 'sent', message: 'Invoice #1002 sent to client' },
+        { id: '2', date: '2023-10-01T09:00:00', type: 'reminder', message: 'Automated Reminder (Friendly) sent' }
+      ]
     },
     {
       id: '3',
@@ -48,7 +59,10 @@ const App: React.FC = () => {
       dueDate: '2023-11-03',
       amount: 4200,
       remindersEnabled: true,
-      theme: 'minimal'
+      theme: 'minimal',
+      logs: [
+        { id: '1', date: '2023-10-20T11:00:00', type: 'sent', message: 'Invoice #1003 sent to client' }
+      ]
     },
     {
       id: '4',
@@ -62,7 +76,11 @@ const App: React.FC = () => {
       amount: 12500,
       remindersEnabled: false,
       paidAt: '2023-07-10',
-      theme: 'corporate'
+      theme: 'corporate',
+      logs: [
+        { id: '1', date: '2023-07-01T09:00:00', type: 'sent', message: 'Invoice #1004 sent' },
+        { id: '2', date: '2023-07-10T15:45:00', type: 'paid', message: 'Payment received via Stripe' }
+      ]
     },
     {
       id: '5',
@@ -75,7 +93,8 @@ const App: React.FC = () => {
       dueDate: '2023-11-08',
       amount: 3200,
       remindersEnabled: true,
-      theme: 'minimal'
+      theme: 'minimal',
+      logs: []
     },
     {
       id: '6',
@@ -89,7 +108,11 @@ const App: React.FC = () => {
       amount: 450,
       remindersEnabled: true,
       paidAt: '2023-06-20',
-      theme: 'creative'
+      theme: 'creative',
+      logs: [
+        { id: '1', date: '2023-06-10T10:00:00', type: 'sent' },
+        { id: '2', date: '2023-06-20T11:20:00', type: 'paid' }
+      ]
     },
     {
       id: '7',
@@ -102,7 +125,8 @@ const App: React.FC = () => {
       dueDate: '2023-11-15',
       amount: 8000,
       remindersEnabled: false,
-      theme: 'minimal'
+      theme: 'minimal',
+      logs: []
     },
     {
       id: '8',
@@ -116,7 +140,11 @@ const App: React.FC = () => {
       amount: 500,
       remindersEnabled: true,
       paidAt: '2023-10-02',
-      theme: 'corporate'
+      theme: 'corporate',
+      logs: [
+          { id: '1', date: '2023-10-01T08:00:00', type: 'sent' },
+          { id: '2', date: '2023-10-02T14:00:00', type: 'paid' }
+      ]
     }
   ]);
 
@@ -124,6 +152,11 @@ const App: React.FC = () => {
     if (invoiceId) setActiveInvoiceId(invoiceId);
     setView(newView);
     window.scrollTo(0, 0);
+  };
+
+  const handleOpenInvoice = (id: string) => {
+    setActiveInvoiceId(id);
+    // Don't change view, we will render a modal over the dashboard
   };
 
   const handleCreateInvoice = (newInvoice: Invoice) => {
@@ -143,6 +176,7 @@ const App: React.FC = () => {
     return <LandingPage onLogin={() => navigate('dashboard')} />;
   }
 
+  // Pure Client View (Simulated public link)
   if (view === 'client-view' && activeInvoiceId) {
     const invoice = invoices.find(i => i.id === activeInvoiceId);
     if (!invoice) return <div>Invoice not found</div>;
@@ -165,13 +199,21 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen text-zinc-100 selection:bg-emerald-500/30">
+    <div className="min-h-screen text-zinc-100 selection:bg-emerald-500/30 relative">
       <Dashboard 
         invoices={invoices}
         onLogout={() => navigate('landing')}
         onCreate={() => navigate('create-invoice')}
-        onViewClient={(id) => navigate('client-view', id)}
+        onViewClient={handleOpenInvoice}
       />
+      
+      {/* Invoice Modal Overlay */}
+      {activeInvoiceId && view === 'dashboard' && (
+         <InvoiceModal 
+            invoice={invoices.find(i => i.id === activeInvoiceId) as Invoice}
+            onClose={() => setActiveInvoiceId(null)}
+         />
+      )}
     </div>
   );
 };

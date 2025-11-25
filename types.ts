@@ -16,6 +16,13 @@ export type InvoiceTheme = 'minimal' | 'corporate' | 'creative';
 export type ReminderFrequency = 'weekly' | 'biweekly' | 'daily' | 'custom';
 export type ReminderTone = 'friendly' | 'professional' | 'urgent' | 'casual';
 
+export interface EmailLog {
+  id: string;
+  date: string;
+  type: 'sent' | 'reminder' | 'opened' | 'paid';
+  message?: string;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -34,6 +41,7 @@ export interface Invoice {
   reminderCustomInterval?: number; // Days
   reminderTone?: ReminderTone;
   reminderTime?: string; // HH:MM 24h format
+  logs?: EmailLog[];
 }
 
 export type ViewState = 'landing' | 'dashboard' | 'create-invoice' | 'client-view';

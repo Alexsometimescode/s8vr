@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Button, Logo } from '../ui/Shared';
 import { Invoice, ReminderFrequency, ReminderTone, Client } from '../../types';
-import { LayoutDashboard, LogOut, ArrowUpRight, Copy, Check, Info, Users, PieChart, Settings, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, MessageSquare, Zap, Clock, Mail, Calendar, Sliders, TrendingUp, DollarSign, Activity, Trash2, ArrowLeft, Phone, Globe } from 'lucide-react';
+import { LayoutDashboard, LogOut, ArrowUpRight, Copy, Check, Info, Users, PieChart, Settings, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, MessageSquare, Zap, Clock, Mail, Calendar, Sliders, TrendingUp, DollarSign, Activity, Trash2, ArrowLeft, Phone, Globe, AlertCircle } from 'lucide-react';
 
 interface DashboardProps {
   invoices: Invoice[];
@@ -24,6 +25,7 @@ const INITIAL_CLIENTS = [
 const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'reminders' | 'clients' | 'reports' | 'settings'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Clients State
   const [clients, setClients] = useState(INITIAL_CLIENTS);
@@ -129,6 +131,18 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
       { month: 'Oct', value: 9400 }, { month: 'Nov', value: 2400 }, { month: 'Dec', value: 0 }
   ];
   const maxRevenue = 10000; // Fixed max for scale visualization
+
+  // Filter logic for invoices
+  const filteredInvoices = invoices.filter(inv => {
+      if (!searchQuery) return true;
+      return inv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+             inv.invoiceNumber.includes(searchQuery);
+  });
+
+  const overdueInvoices = filteredInvoices.filter(inv => ['overdue', 'ghosted'].includes(inv.status));
+  const activeInvoices = filteredInvoices.filter(inv => ['pending', 'draft'].includes(inv.status));
+  const paidInvoices = filteredInvoices.filter(inv => inv.status === 'paid');
+
 
   return (
     <div className="flex h-screen bg-black text-white overflow-hidden font-sans">
@@ -313,34 +327,68 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
             )}
 
             {activeTab === 'invoices' && (
-                <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
-                     {/* Search / Filter Bar Placeholder */}
-                     <div className="flex gap-4 mb-6">
+                <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+                     {/* Search / Filter Bar */}
+                     <div className="flex gap-4 mb-2">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                            <input type="text" placeholder="Search invoices..." className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 transition-colors" />
+                            <input 
+                                type="text" 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search invoices by client or number..." 
+                                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 transition-colors" 
+                            />
                         </div>
                         <Button variant="outline" icon={<Filter className="w-4 h-4"/>} className="hidden md:flex">Filter</Button>
                      </div>
 
-                     <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden relative">
-                        <div className="p-2 space-y-1">
-                            {invoices.length > 0 ? (
-                            invoices.map(invoice => (
-                                <InvoiceListItem 
-                                    key={invoice.id} 
-                                    invoice={invoice} 
-                                    onClick={() => onViewClient(invoice.id)}
-                                />
-                            ))
-                            ) : (
-                            <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
-                                <FileText className="w-12 h-12 mb-4 opacity-20" />
-                                <p>No invoices found.</p>
-                            </div>
-                            )}
-                        </div>
-                     </div>
+                    {filteredInvoices.length === 0 ? (
+                         <div className="flex flex-col items-center justify-center py-20 text-zinc-500 bg-[#0e0e0e] border border-zinc-800 rounded-2xl">
+                             <FileText className="w-12 h-12 mb-4 opacity-20" />
+                             <p>No invoices found.</p>
+                         </div>
+                    ) : (
+                        <>
+                             {/* Urgent / Overdue Section */}
+                             {overdueInvoices.length > 0 && (
+                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300">
+                                    <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 pl-2 flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4"/> Requires Action
+                                    </h3>
+                                    <div className="bg-[#0e0e0e] border border-red-900/30 rounded-2xl overflow-hidden p-2 space-y-1">
+                                        {overdueInvoices.map(inv => (
+                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} />
+                                        ))}
+                                    </div>
+                                </div>
+                             )}
+
+                             {/* Active Section */}
+                             {activeInvoices.length > 0 && (
+                                <div className="animate-in slide-in-from-bottom-4 fade-in duration-500">
+                                    <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-3 pl-2">Active</h3>
+                                    <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl overflow-hidden p-2 space-y-1">
+                                        {activeInvoices.map(inv => (
+                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} />
+                                        ))}
+                                    </div>
+                                </div>
+                             )}
+
+                             {/* Paid Section */}
+                             {paidInvoices.length > 0 && (
+                                <div className="animate-in slide-in-from-bottom-6 fade-in duration-700">
+                                    <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-3 pl-2">Paid History</h3>
+                                    <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl overflow-hidden p-2 space-y-1 opacity-80 hover:opacity-100 transition-opacity">
+                                        {paidInvoices.map(inv => (
+                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} />
+                                        ))}
+                                    </div>
+                                </div>
+                             )}
+                        </>
+                    )}
                 </div>
             )}
 
@@ -784,45 +832,39 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void }> = ({ 
       setTimeout(() => setCopied(false), 2000);
     };
 
-    const statusConfig = {
-        paid: { 
-            color: 'green', 
-            label: 'Paid', 
-            bg: 'bg-emerald-500/10', 
-            border: 'border-emerald-500/20', 
-            text: 'text-emerald-500' 
-        },
-        pending: { 
-            color: 'brown', 
-            label: 'No Reply', 
-            bg: 'bg-[#2A1515]', 
-            border: 'border-red-900/20', 
-            text: 'text-red-400' 
-        },
-        overdue: { 
-            color: 'red', 
-            label: 'Late (14d)', 
-            bg: 'bg-red-950/40', 
-            border: 'border-red-900/40', 
-            text: 'text-red-400' 
-        },
-        ghosted: { 
-            color: 'darkred', 
-            label: 'Ghosted?', 
-            bg: 'bg-red-500/10', 
-            border: 'border-red-500/20', 
-            text: 'text-red-500' 
-        },
-        draft: { 
-            color: 'gray', 
-            label: 'Draft', 
-            bg: 'bg-zinc-800', 
-            border: 'border-zinc-700', 
-            text: 'text-zinc-500' 
-        }
-    } as const;
+    // Dynamic Status Calculation
+    const today = new Date();
+    const dueDate = new Date(invoice.dueDate);
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let statusLabel = '';
+    let statusColor = 'gray';
 
-    const config = statusConfig[invoice.status] || statusConfig.draft;
+    // Status Logic: PAID or Days count. No text labels.
+    if (invoice.status === 'paid') {
+        statusLabel = 'PAID';
+        statusColor = 'green';
+    } else {
+        if (diffDays < 0) {
+            // Overdue
+            statusLabel = `${Math.abs(diffDays)}d`;
+            statusColor = 'red';
+        } else {
+            // Upcoming
+            statusLabel = `${diffDays}d`;
+            statusColor = diffDays <= 3 ? 'orange' : 'gray';
+        }
+    }
+
+    const colorClasses = {
+        green: "bg-emerald-500/10 border-emerald-500/20 text-emerald-500",
+        red: "bg-red-950/40 border-red-900/40 text-red-400",
+        orange: "bg-orange-500/10 border-orange-500/20 text-orange-500",
+        gray: "bg-zinc-800 border-zinc-700 text-zinc-400"
+    };
+
+    const activeClass = colorClasses[statusColor as keyof typeof colorClasses] || colorClasses.gray;
 
     return (
         <div 
@@ -830,7 +872,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void }> = ({ 
           className="group relative flex items-center justify-between p-4 rounded-xl hover:bg-zinc-900/50 border border-transparent hover:border-zinc-800 transition-all cursor-pointer select-none overflow-hidden"
         >
             <div className="flex items-center gap-4 z-10">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${config.color === 'green' ? 'bg-emerald-900/20 text-emerald-500' : 'bg-zinc-900 text-zinc-500 group-hover:bg-zinc-800'}`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${invoice.status === 'paid' ? 'bg-emerald-900/20 text-emerald-500' : 'bg-zinc-900 text-zinc-500 group-hover:bg-zinc-800'}`}>
                     <FileText className="w-5 h-5" />
                 </div>
                 <div>
@@ -853,15 +895,11 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void }> = ({ 
                 <div className="absolute right-0 top-0 bottom-0 flex items-center gap-4 md:gap-6 transition-transform duration-300 ease-out group-hover:-translate-x-24">
                      <div className="text-right hidden md:block">
                          <div className="font-mono font-bold text-base tracking-tight">${invoice.amount.toLocaleString()}</div>
-                         <div className="text-[10px] text-zinc-600 font-medium">USD</div>
+                         <div className="text-xs text-zinc-600 font-medium">USD</div>
                     </div>
                     
-                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold border min-w-[90px] justify-center tracking-wide uppercase z-10 ${config.bg} ${config.border} ${config.text}`}>
-                        {(config.color === 'red' || config.color === 'darkred') && <span className="relative flex h-1.5 w-1.5 mr-0.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
-                        </span>}
-                        {config.label}
+                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold border min-w-[60px] justify-center tracking-wide uppercase z-10 ${activeClass}`}>
+                        {statusLabel}
                     </div>
                 </div>
 
