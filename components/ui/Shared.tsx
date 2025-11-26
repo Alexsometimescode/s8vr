@@ -20,7 +20,9 @@ export const LogoIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-
 
 export const Logo: React.FC = () => (
   <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-white select-none cursor-pointer group">
-    <LogoIcon className="w-6 h-6 text-white transition-colors" />
+    <div className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90">
+      <LogoIcon className="w-6 h-6 text-white" />
+    </div>
     <span>s8vr</span>
   </div>
 );
