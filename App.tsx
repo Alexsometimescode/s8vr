@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/app/Dashboard';
@@ -6,10 +5,15 @@ import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/ap
 import { ViewState, Invoice } from './types';
 
 const App: React.FC = () => {
-  // Start directly in the dashboard as requested
   const [view, setView] = useState<ViewState>('dashboard');
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
-  
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Toggle Theme Function
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   // Robust Mock Data for a "Live" feel
   const [invoices, setInvoices] = useState<Invoice[]>([
     {
@@ -156,7 +160,6 @@ const App: React.FC = () => {
 
   const handleOpenInvoice = (id: string) => {
     setActiveInvoiceId(id);
-    // Don't change view, we will render a modal over the dashboard
   };
 
   const handleCreateInvoice = (newInvoice: Invoice) => {
@@ -168,7 +171,6 @@ const App: React.FC = () => {
     setInvoices(invoices.map(inv => 
       inv.id === id ? { ...inv, status: 'paid', paidAt: new Date().toISOString() } : inv
     ));
-    // Optional: Navigate back or stay on receipt
   };
 
   // Views
@@ -191,20 +193,24 @@ const App: React.FC = () => {
 
   if (view === 'create-invoice') {
     return (
-      <InvoiceBuilder 
-        onCancel={() => navigate('dashboard')} 
-        onSave={handleCreateInvoice} 
-      />
+      <div className={isDarkMode ? 'dark' : ''}>
+        <InvoiceBuilder 
+          onCancel={() => navigate('dashboard')} 
+          onSave={handleCreateInvoice} 
+        />
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-zinc-100 selection:bg-emerald-500/30 relative">
+    <div className={`${isDarkMode ? 'dark' : ''} min-h-screen bg-background`}>
       <Dashboard 
         invoices={invoices}
         onLogout={() => navigate('landing')}
         onCreate={() => navigate('create-invoice')}
         onViewClient={handleOpenInvoice}
+        isDarkMode={isDarkMode}
+        toggleTheme={toggleTheme}
       />
       
       {/* Invoice Modal Overlay */}

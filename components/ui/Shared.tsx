@@ -18,10 +18,10 @@ export const LogoIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-
   </svg>
 );
 
-export const Logo: React.FC = () => (
-  <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-white select-none cursor-pointer group">
+export const Logo: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={`flex items-center gap-2 font-bold text-xl tracking-tight select-none cursor-pointer group text-textMain ${className}`}>
     <div className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90">
-      <LogoIcon className="w-6 h-6 text-white" />
+      <LogoIcon className="w-6 h-6 text-current" />
     </div>
     <span>s8vr</span>
   </div>
@@ -44,11 +44,12 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none";
   
   const variants = {
-    primary: "bg-white text-black hover:bg-zinc-200",
+    // Primary: In dark mode white text black, in light mode black text white
+    primary: "bg-textMain text-background hover:opacity-90",
     secondary: "bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]",
-    ghost: "text-zinc-400 hover:text-white hover:bg-white/5",
-    outline: "border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white bg-transparent",
-    danger: "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+    ghost: "text-textMuted hover:text-textMain hover:bg-surfaceHighlight",
+    outline: "border border-border text-textMuted hover:border-textMuted hover:text-textMain bg-transparent",
+    danger: "text-red-400 hover:bg-red-500/10 hover:text-red-500"
   };
 
   const sizes = {
@@ -85,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onAction, actionLabel = "Get Ear
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <Logo />
+          <Logo className="text-white" /> {/* Force white on landing page usually, but context dependent */}
         </div>
         
         {!isApp && (

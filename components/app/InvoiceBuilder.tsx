@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Invoice, InvoiceItem, InvoiceTheme } from '../../types';
 import { Button, Navbar, Logo } from '../ui/Shared';
@@ -53,7 +52,7 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
   if (!isPaid) {
       if (diffDays < 0) {
           statusBadge = (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-red-950/40 text-red-400 border border-red-900/40">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-red-500/10 text-red-500 border border-red-500/20">
                    <AlertCircle className="w-3 h-3" /> Overdue by {Math.abs(diffDays)}d
               </span>
           );
@@ -82,51 +81,51 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
       
       {/* Modal Content - Split View */}
       <div 
-        className="relative z-10 w-full max-w-5xl h-[85vh] bg-[#0e0e0e] border border-zinc-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row transform transition-all animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+        className="relative z-10 w-full max-w-5xl h-[85vh] bg-surface border border-border rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row transform transition-all animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300"
         onClick={handleContentClick}
       >
          <button 
             onClick={onClose}
-            className="absolute top-4 right-4 z-50 p-2 text-zinc-400 hover:text-white transition-colors bg-zinc-800/50 hover:bg-zinc-800 rounded-full backdrop-blur-md"
+            className="absolute top-4 right-4 z-50 p-2 text-textMuted hover:text-textMain transition-colors bg-surface/50 hover:bg-surface rounded-full backdrop-blur-md border border-border"
          >
             <X className="w-5 h-5" />
          </button>
 
          {/* Left Side: Invoice Preview */}
-         <div className="flex-1 bg-zinc-900/30 overflow-y-auto custom-scrollbar p-6 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-zinc-800">
-             <div className="w-full max-w-[480px] scale-[0.95] origin-top">
-                {/* Use minimal prop to remove Stripe footer as requested ("i don't want to see the stripe payment cart") */}
+         <div className="flex-1 bg-surfaceHighlight overflow-y-auto custom-scrollbar p-6 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-border">
+             <div className="w-full max-w-[480px] scale-[0.95] origin-top shadow-xl">
+                {/* Use minimal prop to remove Stripe footer in report view */}
                 <InvoicePreviewCard data={invoice} minimal={true} />
              </div>
          </div>
 
          {/* Right Side: Report & Activity */}
-         <div className="w-full lg:w-[420px] bg-black p-8 overflow-y-auto custom-scrollbar">
+         <div className="w-full lg:w-[420px] bg-background p-8 overflow-y-auto custom-scrollbar">
              <div className="space-y-8">
                  
                  {/* Header Status */}
                  <div>
                      <div className="flex items-center justify-between mb-1">
-                        <h2 className="text-xl font-bold">Invoice #{invoice.invoiceNumber}</h2>
-                        <span className="text-zinc-500 font-mono text-sm">${invoice.amount.toLocaleString()}</span>
+                        <h2 className="text-xl font-bold text-textMain">Invoice #{invoice.invoiceNumber}</h2>
+                        <span className="text-textMuted font-mono text-sm">${invoice.amount.toLocaleString()}</span>
                      </div>
-                     <div className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
+                     <div className="flex items-center gap-2 text-textMuted text-sm mb-4">
                          <span>Created on {new Date(invoice.issueDate).toLocaleDateString()}</span>
                      </div>
                      {!isPaid && statusBadge}
                  </div>
 
                  {/* Payment Status Card */}
-                 <div className={`p-4 rounded-xl border ${isPaid ? 'bg-emerald-950/20 border-emerald-900' : 'bg-zinc-900/50 border-zinc-800'}`}>
+                 <div className={`p-4 rounded-xl border ${isPaid ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-surfaceHighlight border-border'}`}>
                      <div className="flex items-start gap-4">
-                         <div className={`p-2 rounded-lg ${isPaid ? 'bg-emerald-500/20 text-emerald-500' : 'bg-zinc-800 text-zinc-400'}`}>
+                         <div className={`p-2 rounded-lg ${isPaid ? 'bg-emerald-500/20 text-emerald-500' : 'bg-surface text-textMuted'}`}>
                              {isPaid ? <Check className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
                          </div>
                          <div>
-                             <div className={`font-bold text-sm ${isPaid ? 'text-emerald-500' : 'text-zinc-300'}`}>
+                             <div className={`font-bold text-sm ${isPaid ? 'text-emerald-500' : 'text-textMain'}`}>
                                  {isPaid ? 'Paid in Full' : 'Payment Pending'}
                              </div>
-                             <div className="text-xs text-zinc-500 mt-1">
+                             <div className="text-xs text-textMuted mt-1">
                                  {isPaid 
                                    ? `Payment received via Stripe on ${new Date(invoice.paidAt || Date.now()).toLocaleDateString()}` 
                                    : 'Client has viewed the invoice but not yet paid.'
@@ -138,31 +137,31 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
 
                  {/* Client Details */}
                  <div>
-                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Client Details</h3>
-                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 space-y-3">
+                    <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Client Details</h3>
+                    <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
                         <div className="flex justify-between text-sm">
-                            <span className="text-zinc-500">Name</span>
-                            <span className="text-white font-medium">{invoice.clientName}</span>
+                            <span className="text-textMuted">Name</span>
+                            <span className="text-textMain font-medium">{invoice.clientName}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-zinc-500">Email</span>
-                            <span className="text-white">{invoice.clientEmail}</span>
+                            <span className="text-textMuted">Email</span>
+                            <span className="text-textMain">{invoice.clientEmail}</span>
                         </div>
                     </div>
                  </div>
 
                  {/* Automation Status */}
                  <div>
-                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Automation</h3>
-                    <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Automation</h3>
+                    <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Bell className={`w-4 h-4 ${invoice.remindersEnabled ? 'text-emerald-500' : 'text-zinc-600'}`} />
-                            <span className={`text-sm font-medium ${invoice.remindersEnabled ? 'text-white' : 'text-zinc-500'}`}>
+                            <Bell className={`w-4 h-4 ${invoice.remindersEnabled ? 'text-emerald-500' : 'text-textMuted'}`} />
+                            <span className={`text-sm font-medium ${invoice.remindersEnabled ? 'text-textMain' : 'text-textMuted'}`}>
                                 {invoice.remindersEnabled ? 'Reminders Active' : 'Reminders Paused'}
                             </span>
                         </div>
                         {invoice.remindersEnabled && (
-                            <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">
+                            <span className="text-xs text-textMuted bg-surfaceHighlight px-2 py-1 rounded">
                                 {invoice.reminderFrequency || 'Weekly'}
                             </span>
                         )}
@@ -171,26 +170,26 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
 
                  {/* Activity Timeline */}
                  <div>
-                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4">Activity Log</h3>
+                    <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-4">Activity Log</h3>
                     <div className="space-y-6 relative pl-2">
                         {/* Vertical Line - Centered through circles (left-5 is 1.25rem/20px, circles centered at 8px+12px=20px) */}
-                        <div className="absolute left-5 top-2 bottom-2 w-px bg-zinc-800 -ml-[0.5px]" />
+                        <div className="absolute left-5 top-2 bottom-2 w-px bg-border -ml-[0.5px]" />
 
                         {(!invoice.logs || invoice.logs.length === 0) ? (
-                            <div className="pl-8 py-2 text-sm text-zinc-500 italic">No activity recorded yet.</div>
+                            <div className="pl-8 py-2 text-sm text-textMuted italic">No activity recorded yet.</div>
                         ) : (
                             invoice.logs.map((log) => (
                                 <div key={log.id} className="relative flex gap-4 items-start">
-                                    <div className={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-black ${
+                                    <div className={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-background ${
                                         log.type === 'paid' ? 'border-emerald-500 text-emerald-500' :
                                         log.type === 'sent' ? 'border-blue-500 text-blue-500' :
                                         log.type === 'reminder' ? 'border-orange-500 text-orange-500' :
-                                        'border-zinc-700 text-zinc-500'
+                                        'border-border text-textMuted'
                                     }`}>
                                         <div className="w-1.5 h-1.5 rounded-full bg-current" />
                                     </div>
                                     <div className="flex-1 pt-0.5">
-                                        <div className="text-sm font-medium text-zinc-200">
+                                        <div className="text-sm font-medium text-textMain">
                                             {log.message || (
                                                 log.type === 'sent' ? 'Invoice sent to client' :
                                                 log.type === 'paid' ? 'Payment received' :
@@ -198,7 +197,7 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
                                                 'Opened by client'
                                             )}
                                         </div>
-                                        <div className="text-xs text-zinc-500 mt-1">
+                                        <div className="text-xs text-textMuted mt-1">
                                             {new Date(log.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                                         </div>
                                     </div>
@@ -283,7 +282,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
 
   if (step === 'preview') {
       return (
-          <div className="min-h-screen bg-[#050505] text-white pt-20 pb-12 px-4 flex flex-col items-center animate-in slide-in-from-right duration-300">
+          <div className="min-h-screen bg-background text-textMain pt-20 pb-12 px-4 flex flex-col items-center animate-in slide-in-from-right duration-300">
               <div className="w-full max-w-4xl mb-8 flex justify-between items-center">
                   <Button variant="ghost" onClick={() => setStep('edit')} icon={<ArrowLeft className="w-4 h-4" />}>Back to Edit</Button>
                   <Button onClick={handleSave} disabled={isSending}>
@@ -297,18 +296,18 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
               </div>
 
               {/* Automation Toggle in Preview */}
-              <div className="mt-8 bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 w-full max-w-2xl flex items-center justify-between">
+              <div className="mt-8 bg-surface border border-border rounded-xl p-6 w-full max-w-2xl flex items-center justify-between">
                   <div>
                       <h3 className="font-bold mb-1">Polite Nudges</h3>
-                      <p className="text-zinc-400 text-sm">Automatically follow up if unpaid after due date.</p>
+                      <p className="text-textMuted text-sm">Automatically follow up if unpaid after due date.</p>
                   </div>
                   <div className="flex items-center gap-2">
-                       <span className={`text-sm ${invoice.remindersEnabled ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                       <span className={`text-sm ${invoice.remindersEnabled ? 'text-emerald-500' : 'text-textMuted'}`}>
                            {invoice.remindersEnabled ? 'On' : 'Off'}
                        </span>
                        <button 
                             onClick={() => setInvoice({...invoice, remindersEnabled: !invoice.remindersEnabled})}
-                            className={`w-12 h-6 rounded-full relative transition-colors ${invoice.remindersEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                            className={`w-12 h-6 rounded-full relative transition-colors ${invoice.remindersEnabled ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
                        >
                            <div className={`absolute top-1 bottom-1 w-4 bg-white rounded-full transition-all shadow ${invoice.remindersEnabled ? 'left-7' : 'left-1'}`} />
                        </button>
@@ -319,7 +318,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
+    <div className="min-h-screen bg-background text-textMain">
       <Navbar onAction={() => setStep('preview')} actionLabel="Preview Invoice" isApp onBack={onCancel} />
       
       <div className="max-w-4xl mx-auto pt-24 px-6 pb-20">
@@ -329,26 +328,26 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
             {/* Form */}
             <div className="lg:col-span-2 space-y-8">
                 {/* Client Info */}
-                <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl p-6">
+                <div className="bg-surface border border-border rounded-2xl p-6">
                     <h2 className="text-lg font-bold mb-4">Client Details</h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-1">Client Name</label>
+                            <label className="block text-sm font-medium text-textMuted mb-1">Client Name</label>
                             <input 
                                 type="text" 
                                 value={invoice.clientName}
                                 onChange={e => setInvoice({...invoice, clientName: e.target.value})}
-                                className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:border-emerald-500 focus:outline-none transition-colors"
+                                className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none transition-colors"
                                 placeholder="e.g. Acme Corp"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-1">Client Email</label>
+                            <label className="block text-sm font-medium text-textMuted mb-1">Client Email</label>
                             <input 
                                 type="email" 
                                 value={invoice.clientEmail}
                                 onChange={e => setInvoice({...invoice, clientEmail: e.target.value})}
-                                className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:border-emerald-500 focus:outline-none transition-colors"
+                                className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none transition-colors"
                                 placeholder="billing@acme.com"
                             />
                         </div>
@@ -356,7 +355,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                 </div>
 
                 {/* Items */}
-                <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl p-6">
+                <div className="bg-surface border border-border rounded-2xl p-6">
                     <h2 className="text-lg font-bold mb-4">Line Items</h2>
                     <div className="space-y-3">
                         {invoice.items.map((item, index) => (
@@ -366,7 +365,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                                         type="text" 
                                         value={item.description}
                                         onChange={e => updateItem(item.id, 'description', e.target.value)}
-                                        className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:border-emerald-500 focus:outline-none"
+                                        className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
                                         placeholder="Description of work..."
                                     />
                                 </div>
@@ -375,13 +374,13 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                                         type="number" 
                                         value={item.amount || ''}
                                         onChange={e => updateItem(item.id, 'amount', parseFloat(e.target.value))}
-                                        className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:border-emerald-500 focus:outline-none text-right"
+                                        className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none text-right"
                                         placeholder="0.00"
                                     />
                                 </div>
                                 <button 
                                     onClick={() => removeItem(item.id)}
-                                    className="p-3 text-zinc-500 hover:text-red-400 hover:bg-zinc-900 rounded-lg transition-colors"
+                                    className="p-3 text-textMuted hover:text-red-500 hover:bg-surfaceHighlight rounded-lg transition-colors"
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>
@@ -395,8 +394,8 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                         <Plus className="w-4 h-4" /> Add Item
                     </button>
                     
-                    <div className="mt-8 border-t border-zinc-800 pt-6 flex justify-between items-center">
-                        <span className="text-zinc-400">Total</span>
+                    <div className="mt-8 border-t border-border pt-6 flex justify-between items-center">
+                        <span className="text-textMuted">Total</span>
                         <span className="text-2xl font-bold">${invoice.items.reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}</span>
                     </div>
                 </div>
@@ -406,8 +405,8 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
             <div className="space-y-6">
                 
                 {/* Templates */}
-                <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-4 text-zinc-400">
+                <div className="bg-surface border border-border rounded-2xl p-6">
+                    <div className="flex items-center gap-2 mb-4 text-textMuted">
                         <LayoutTemplate className="w-4 h-4" />
                         <span className="text-xs font-bold uppercase tracking-wider">Templates</span>
                     </div>
@@ -418,35 +417,35 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                                 onClick={() => applyTemplate(t)}
                                 className={`w-full text-left p-3 rounded-xl border transition-all ${
                                     theme === t.id 
-                                    ? 'bg-zinc-800 border-zinc-600 ring-1 ring-zinc-500' 
-                                    : 'bg-black border-zinc-800 hover:border-zinc-700'
+                                    ? 'bg-surfaceHighlight border-textMuted ring-1 ring-textMuted' 
+                                    : 'bg-background border-border hover:border-textMuted'
                                 }`}
                             >
-                                <div className="font-bold text-sm mb-0.5">{t.name}</div>
-                                <div className="text-xs text-zinc-500 leading-snug">{t.description}</div>
+                                <div className="font-bold text-sm mb-0.5 text-textMain">{t.name}</div>
+                                <div className="text-xs text-textMuted leading-snug">{t.description}</div>
                             </button>
                         ))}
                     </div>
                 </div>
 
                 {/* Dates */}
-                <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl p-6 space-y-4">
+                <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
                      <div>
-                        <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Issue Date</label>
+                        <label className="block text-xs font-bold text-textMuted uppercase mb-2">Issue Date</label>
                         <input 
                             type="date"
                             value={invoice.issueDate}
                             onChange={(e) => setInvoice({...invoice, issueDate: e.target.value})} 
-                            className="w-full bg-black border border-zinc-800 rounded-lg p-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-600"
+                            className="w-full bg-background border border-border rounded-lg p-2 text-sm text-textMain focus:outline-none focus:border-emerald-500"
                         />
                      </div>
                      <div>
-                        <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Due Date</label>
+                        <label className="block text-xs font-bold text-textMuted uppercase mb-2">Due Date</label>
                         <input 
                             type="date"
                             value={invoice.dueDate}
                             onChange={(e) => setInvoice({...invoice, dueDate: e.target.value})} 
-                            className="w-full bg-black border border-zinc-800 rounded-lg p-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-600"
+                            className="w-full bg-background border border-border rounded-lg p-2 text-sm text-textMain focus:outline-none focus:border-emerald-500"
                         />
                      </div>
                 </div>
@@ -460,11 +459,9 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
 export const InvoicePreviewCard: React.FC<{ data: Invoice; minimal?: boolean }> = ({ data, minimal }) => {
     const total = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
     
-    // Always use the "Design that sells" minimalist white style regardless of selected theme in builder for now
-    // to maintain the high quality look requested.
-    
+    // Clean White Design - Consistent regardless of app theme
     return (
-        <div className="w-full aspect-[3/4] md:aspect-auto md:min-h-[600px] bg-white text-black rounded-lg shadow-2xl p-8 md:p-12 relative overflow-hidden flex flex-col">
+        <div className="w-full aspect-[3/4] md:aspect-auto md:min-h-[600px] bg-white text-black rounded-lg shadow-2xl p-8 md:p-12 relative overflow-hidden flex flex-col border border-zinc-200">
             
             {/* Header */}
             <div className="flex justify-between items-start mb-16">
@@ -473,7 +470,7 @@ export const InvoicePreviewCard: React.FC<{ data: Invoice; minimal?: boolean }> 
                         {data.clientName ? data.clientName.charAt(0).toUpperCase() : 'C'}
                     </div>
                     <div>
-                        <div className="font-bold text-lg">{data.clientName || 'Client Name'}</div>
+                        <div className="font-bold text-lg text-black">{data.clientName || 'Client Name'}</div>
                         <div className="text-sm text-gray-500">Invoice #{data.invoiceNumber}</div>
                     </div>
                 </div>
@@ -520,6 +517,7 @@ export const InvoicePreviewCard: React.FC<{ data: Invoice; minimal?: boolean }> 
                  )}
                  <div className="mt-6 flex justify-between items-center text-xs text-gray-400">
                      <span>Due in 14 days</span>
+                     <span>Thank you for your business</span>
                  </div>
             </div>
         </div>
@@ -541,22 +539,22 @@ export const ClientInvoiceView: React.FC<{ invoice: Invoice; onPay: () => void; 
 
     if (success) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
-                <div className="bg-[#0e0e0e] border border-zinc-800 rounded-3xl p-12 text-center max-w-sm w-full animate-in zoom-in duration-300">
+            <div className="min-h-screen bg-background flex items-center justify-center p-4">
+                <div className="bg-surface border border-border rounded-3xl p-12 text-center max-w-sm w-full animate-in zoom-in duration-300">
                     <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
                         <Check className="w-10 h-10 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Payment Received</h2>
-                    <p className="text-zinc-400">Transfer initiated to bank.</p>
+                    <h2 className="text-2xl font-bold text-textMain mb-2">Payment Received</h2>
+                    <p className="text-textMuted">Transfer initiated to bank.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] flex flex-col items-center py-12 px-4 md:px-6">
+        <div className="min-h-screen bg-background flex flex-col items-center py-12 px-4 md:px-6">
             <div className="w-full max-w-4xl mb-8 flex justify-between items-center">
-                 <div className="flex items-center gap-2 text-white font-bold text-xl"><Logo /></div>
+                 <div className="flex items-center gap-2 text-textMain font-bold text-xl"><Logo /></div>
             </div>
             
             <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl">
@@ -565,9 +563,9 @@ export const ClientInvoiceView: React.FC<{ invoice: Invoice; onPay: () => void; 
                  </div>
                  
                  <div className="w-full md:w-80 space-y-4">
-                     <div className="bg-[#0e0e0e] border border-zinc-800 rounded-2xl p-6 shadow-xl sticky top-8">
-                         <div className="text-sm text-zinc-400 mb-1">Total Due</div>
-                         <div className="text-4xl font-bold text-white mb-6">${invoice.amount.toLocaleString()}</div>
+                     <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl sticky top-8">
+                         <div className="text-sm text-textMuted mb-1">Total Due</div>
+                         <div className="text-4xl font-bold text-textMain mb-6">${invoice.amount.toLocaleString()}</div>
                          
                          <button 
                             onClick={handlePay}
@@ -577,18 +575,18 @@ export const ClientInvoiceView: React.FC<{ invoice: Invoice; onPay: () => void; 
                             {isProcessing ? <Loader2 className="w-5 h-5 animate-spin"/> : 'Pay Invoice'}
                          </button>
                          
-                         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-500">
+                         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-textMuted">
                              <ShieldCheck className="w-3 h-3" /> Secure 256-bit SSL Encrypted
                          </div>
 
-                         <div className="mt-6 pt-6 border-t border-zinc-800">
+                         <div className="mt-6 pt-6 border-t border-border">
                              <div className="flex justify-between text-sm mb-2">
-                                 <span className="text-zinc-500">Invoice #</span>
-                                 <span className="text-zinc-300">{invoice.invoiceNumber}</span>
+                                 <span className="text-textMuted">Invoice #</span>
+                                 <span className="text-textMain">{invoice.invoiceNumber}</span>
                              </div>
                              <div className="flex justify-between text-sm">
-                                 <span className="text-zinc-500">Due Date</span>
-                                 <span className="text-zinc-300">{new Date(invoice.dueDate).toLocaleDateString()}</span>
+                                 <span className="text-textMuted">Due Date</span>
+                                 <span className="text-textMain">{new Date(invoice.dueDate).toLocaleDateString()}</span>
                              </div>
                          </div>
                      </div>
