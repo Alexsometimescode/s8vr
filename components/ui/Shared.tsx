@@ -18,12 +18,14 @@ export const LogoIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-
   </svg>
 );
 
-export const Logo: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={`flex items-center gap-2 font-bold text-xl tracking-tight select-none cursor-pointer group text-textMain ${className}`}>
-    <div className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90">
+export const Logo: React.FC<{ className?: string; collapsed?: boolean }> = ({ className, collapsed }) => (
+  <div className={`flex items-center gap-2 font-bold text-xl tracking-tight select-none cursor-pointer group text-textMain ${className} ${collapsed ? 'justify-center' : ''}`}>
+    <div className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90 shrink-0">
       <LogoIcon className="w-6 h-6 text-current" />
     </div>
-    <span>s8vr</span>
+    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? 'w-0 opacity-0' : 'w-12 opacity-100'}`}>
+      <span>s8vr</span>
+    </div>
   </div>
 );
 

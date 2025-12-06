@@ -1,30 +1,40 @@
 
 export interface InvoiceItem {
-  id: string;
+  id: string; // UUID
   description: string;
   amount: number;
 }
 
 export interface Client {
-  id: string;
+  id: string; // UUID
   name: string;
   email: string;
 }
 
-export type InvoiceTheme = 'minimal' | 'corporate' | 'creative';
+export type InvoiceTheme = 
+  | 'minimal' 
+  | 'corporate' 
+  | 'startup' 
+  | 'creative' 
+  | 'tech' 
+  | 'elegant' 
+  | 'agency' 
+  | 'modern' 
+  | 'classic' 
+  | 'consultant';
 
 export type ReminderFrequency = 'weekly' | 'biweekly' | 'daily' | 'custom';
 export type ReminderTone = 'friendly' | 'professional' | 'urgent' | 'casual';
 
 export interface EmailLog {
-  id: string;
+  id: string; // UUID
   date: string;
   type: 'sent' | 'reminder' | 'opened' | 'paid';
   message?: string;
 }
 
 export interface Invoice {
-  id: string;
+  id: string; // UUID
   invoiceNumber: string;
   clientName: string;
   clientEmail: string;

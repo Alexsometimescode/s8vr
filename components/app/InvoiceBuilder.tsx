@@ -1,36 +1,100 @@
+
 import React, { useState } from 'react';
 import { Invoice, InvoiceItem, InvoiceTheme } from '../../types';
 import { Button, Navbar, Logo } from '../ui/Shared';
-import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, LayoutTemplate, Building2, Palette, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, LayoutTemplate, Building2, Palette, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText, Lock, Zap, Crown } from 'lucide-react';
+
+// SECURITY: Validation Helper
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 interface InvoiceBuilderProps {
   onCancel: () => void;
   onSave: (invoice: Invoice) => void;
 }
 
-const TEMPLATES: { id: InvoiceTheme; name: string; description: string; items?: InvoiceItem[] }[] = [
+const TEMPLATES: { id: InvoiceTheme; name: string; description: string; isPremium?: boolean; items?: InvoiceItem[] }[] = [
+    // FREE TIER
     {
       id: 'minimal',
       name: 'Minimal',
       description: 'Clean whitespace. Pure simplicity.',
+      isPremium: false
     },
     {
       id: 'corporate',
       name: 'Corporate',
       description: 'Structured header. Professional serif fonts.',
+      isPremium: false,
       items: [
           { id: '1', description: 'Consultation Services', amount: 1500 },
           { id: '2', description: 'Implementation Phase', amount: 3500 }
       ]
     },
     {
+      id: 'startup',
+      name: 'Startup',
+      description: 'Friendly, geometric, and modern.',
+      isPremium: false,
+      items: [
+          { id: '1', description: 'MVP Development', amount: 5000 },
+          { id: '2', description: 'User Testing', amount: 1200 }
+      ]
+    },
+    
+    // PREMIUM TIER
+    {
+      id: 'agency',
+      name: 'Agency',
+      description: 'Big centered amount. Focus on value.',
+      isPremium: true,
+      items: [
+          { id: '1', description: 'Brand Strategy', amount: 4500 },
+          { id: '2', description: 'Visual Identity', amount: 3000 }
+      ]
+    },
+    {
       id: 'creative',
       name: 'Creative',
       description: 'Dark mode aesthetic. Bold accents.',
+      isPremium: true,
       items: [
           { id: '1', description: 'Brand Identity Design', amount: 4000 },
           { id: '2', description: 'Asset Export', amount: 500 }
       ]
+    },
+    {
+      id: 'tech',
+      name: 'Terminal',
+      description: 'Monospace fonts. Developer focused.',
+      isPremium: true,
+      items: [
+          { id: '1', description: 'Backend API Integration', amount: 3200 },
+          { id: '2', description: 'Server Configuration', amount: 800 }
+      ]
+    },
+    {
+      id: 'elegant',
+      name: 'Elegant',
+      description: 'Cream paper, gold accents, refined.',
+      isPremium: true
+    },
+    {
+      id: 'modern',
+      name: 'Modern',
+      description: 'Subtle gradients and soft shadows.',
+      isPremium: true
+    },
+    {
+      id: 'classic',
+      name: 'Classic',
+      description: 'Traditional layout. Double borders.',
+      isPremium: true
+    },
+    {
+      id: 'consultant',
+      name: 'Consultant',
+      description: 'Detailed grid. Clean lines.',
+      isPremium: true
     }
 ];
 
@@ -150,56 +214,24 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
                     </div>
                  </div>
 
-                 {/* Automation Status */}
-                 <div>
-                    <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Automation</h3>
-                    <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Bell className={`w-4 h-4 ${invoice.remindersEnabled ? 'text-emerald-500' : 'text-textMuted'}`} />
-                            <span className={`text-sm font-medium ${invoice.remindersEnabled ? 'text-textMain' : 'text-textMuted'}`}>
-                                {invoice.remindersEnabled ? 'Reminders Active' : 'Reminders Paused'}
-                            </span>
-                        </div>
-                        {invoice.remindersEnabled && (
-                            <span className="text-xs text-textMuted bg-surfaceHighlight px-2 py-1 rounded">
-                                {invoice.reminderFrequency || 'Weekly'}
-                            </span>
-                        )}
-                    </div>
-                 </div>
-
                  {/* Activity Timeline */}
                  <div>
                     <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-4">Activity Log</h3>
                     <div className="space-y-6 relative pl-2">
-                        {/* Vertical Line - Centered through circles (left-5 is 1.25rem/20px, circles centered at 8px+12px=20px) */}
                         <div className="absolute left-5 top-2 bottom-2 w-px bg-border -ml-[0.5px]" />
-
                         {(!invoice.logs || invoice.logs.length === 0) ? (
                             <div className="pl-8 py-2 text-sm text-textMuted italic">No activity recorded yet.</div>
                         ) : (
                             invoice.logs.map((log) => (
                                 <div key={log.id} className="relative flex gap-4 items-start">
                                     <div className={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-background ${
-                                        log.type === 'paid' ? 'border-emerald-500 text-emerald-500' :
-                                        log.type === 'sent' ? 'border-blue-500 text-blue-500' :
-                                        log.type === 'reminder' ? 'border-orange-500 text-orange-500' :
-                                        'border-border text-textMuted'
+                                        log.type === 'paid' ? 'border-emerald-500 text-emerald-500' : 'border-border text-textMuted'
                                     }`}>
                                         <div className="w-1.5 h-1.5 rounded-full bg-current" />
                                     </div>
                                     <div className="flex-1 pt-0.5">
-                                        <div className="text-sm font-medium text-textMain">
-                                            {log.message || (
-                                                log.type === 'sent' ? 'Invoice sent to client' :
-                                                log.type === 'paid' ? 'Payment received' :
-                                                log.type === 'reminder' ? 'Reminder email sent' :
-                                                'Opened by client'
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-textMuted mt-1">
-                                            {new Date(log.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                        </div>
+                                        <div className="text-sm font-medium text-textMain">{log.message || log.type}</div>
+                                        <div className="text-xs text-textMuted mt-1">{new Date(log.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</div>
                                     </div>
                                 </div>
                             ))
@@ -217,10 +249,11 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void }> =
 
 export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave }) => {
   const [step, setStep] = useState<'edit' | 'preview'>('edit');
-  const [theme, setTheme] = useState<InvoiceTheme>('minimal');
+  const [theme, setTheme] = useState<InvoiceTheme>('agency'); // CHANGED DEFAULT TO AGENCY
+  const [isProMember, setIsProMember] = useState(false); // Simulate Pro Membership state
   
   const [invoice, setInvoice] = useState<Invoice>({
-    id: Date.now().toString(),
+    id: crypto.randomUUID(), // SECURITY: Secure ID
     invoiceNumber: String(Math.floor(1000 + Math.random() * 9000)),
     clientName: '',
     clientEmail: '',
@@ -230,7 +263,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     amount: 0,
     remindersEnabled: true,
-    theme: 'minimal'
+    theme: 'agency' // CHANGED DEFAULT TO AGENCY
   });
 
   const [isSending, setIsSending] = useState(false);
@@ -238,7 +271,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   const addItem = () => {
     setInvoice({
       ...invoice,
-      items: [...invoice.items, { id: Date.now().toString(), description: '', amount: 0 }]
+      items: [...invoice.items, { id: crypto.randomUUID(), description: '', amount: 0 }]
     });
   };
 
@@ -257,6 +290,10 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   };
 
   const applyTemplate = (t: typeof TEMPLATES[0]) => {
+      if (t.isPremium && !isProMember) {
+          alert("This template is for Pro members only. Click 'Upgrade' to simulate upgrading.");
+          return;
+      }
       setTheme(t.id);
       setInvoice({
           ...invoice,
@@ -266,6 +303,20 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   };
 
   const handleSave = () => {
+    // SECURITY: Input Validation before sending
+    if (!invoice.clientName.trim() || !invoice.clientEmail.trim()) {
+        alert('Please fill in client details.');
+        return;
+    }
+    if (!isValidEmail(invoice.clientEmail)) {
+        alert('Invalid email address.');
+        return;
+    }
+    if (invoice.items.length === 0 || invoice.items.some(i => i.amount <= 0)) {
+        alert('Please add valid line items.');
+        return;
+    }
+
     setIsSending(true);
     // Simulate API Call
     setTimeout(() => {
@@ -274,7 +325,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
             amount: invoice.items.reduce((sum, item) => sum + item.amount, 0),
             theme: theme,
             logs: [
-                { id: Date.now().toString(), date: new Date().toISOString(), type: 'sent', message: 'Invoice sent to client' }
+                { id: crypto.randomUUID(), date: new Date().toISOString(), type: 'sent', message: 'Invoice sent to client' }
             ]
         });
     }, 1500);
@@ -293,25 +344,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
               
               <div className="w-full max-w-2xl transform transition-all">
                   <InvoicePreviewCard data={{ ...invoice, amount: invoice.items.reduce((sum, item) => sum + item.amount, 0), theme }} />
-              </div>
-
-              {/* Automation Toggle in Preview */}
-              <div className="mt-8 bg-surface border border-border rounded-xl p-6 w-full max-w-2xl flex items-center justify-between">
-                  <div>
-                      <h3 className="font-bold mb-1">Polite Nudges</h3>
-                      <p className="text-textMuted text-sm">Automatically follow up if unpaid after due date.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                       <span className={`text-sm ${invoice.remindersEnabled ? 'text-emerald-500' : 'text-textMuted'}`}>
-                           {invoice.remindersEnabled ? 'On' : 'Off'}
-                       </span>
-                       <button 
-                            onClick={() => setInvoice({...invoice, remindersEnabled: !invoice.remindersEnabled})}
-                            className={`w-12 h-6 rounded-full relative transition-colors ${invoice.remindersEnabled ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
-                       >
-                           <div className={`absolute top-1 bottom-1 w-4 bg-white rounded-full transition-all shadow ${invoice.remindersEnabled ? 'left-7' : 'left-1'}`} />
-                       </button>
-                  </div>
               </div>
           </div>
       );
@@ -403,28 +435,50 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
             
             {/* Sidebar Settings */}
             <div className="space-y-6">
-                
-                {/* Templates */}
-                <div className="bg-surface border border-border rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-4 text-textMuted">
-                        <LayoutTemplate className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Templates</span>
+                 {/* Upgrade Simulator */}
+                 <div className={`p-4 rounded-xl border flex items-center justify-between ${isProMember ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-surfaceHighlight border-border'}`}>
+                    <div className="flex items-center gap-2 text-sm font-bold">
+                        {isProMember ? <Zap className="w-4 h-4" /> : <Lock className="w-4 h-4 text-textMuted" />}
+                        {isProMember ? 'Pro Active' : 'Free Plan'}
                     </div>
-                    <div className="space-y-2">
-                        {TEMPLATES.map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => applyTemplate(t)}
-                                className={`w-full text-left p-3 rounded-xl border transition-all ${
-                                    theme === t.id 
-                                    ? 'bg-surfaceHighlight border-textMuted ring-1 ring-textMuted' 
-                                    : 'bg-background border-border hover:border-textMuted'
-                                }`}
-                            >
-                                <div className="font-bold text-sm mb-0.5 text-textMain">{t.name}</div>
-                                <div className="text-xs text-textMuted leading-snug">{t.description}</div>
-                            </button>
-                        ))}
+                    <button 
+                        onClick={() => setIsProMember(!isProMember)}
+                        className="text-xs underline hover:no-underline"
+                    >
+                        {isProMember ? 'Downgrade' : 'Upgrade'}
+                    </button>
+                 </div>
+
+                 {/* Templates */}
+                <div className="bg-surface border border-border rounded-2xl p-6">
+                    <h2 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <LayoutTemplate className="w-4 h-4" /> Templates
+                    </h2>
+                    <div className="space-y-3">
+                        {TEMPLATES.map((t) => {
+                            const isLocked = t.isPremium && !isProMember;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => applyTemplate(t)}
+                                    className={`w-full text-left p-3 rounded-xl border transition-all relative group ${
+                                        theme === t.id
+                                        ? 'bg-surfaceHighlight border-emerald-500 ring-1 ring-emerald-500'
+                                        : 'bg-background border-border hover:border-textMuted'
+                                    } ${isLocked ? 'opacity-70 cursor-not-allowed hover:border-border' : ''}`}
+                                >
+                                    <div className="flex justify-between items-center mb-1">
+                                        <div className={`font-bold text-sm ${theme === t.id ? 'text-textMain' : 'text-textMain'}`}>{t.name}</div>
+                                        {t.isPremium && (
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${isLocked ? 'bg-surface text-textMuted' : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-500'}`}>
+                                                {isLocked ? <Lock className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-textMuted">{t.description}</div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -458,32 +512,187 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
 
 export const InvoicePreviewCard: React.FC<{ data: Invoice; minimal?: boolean }> = ({ data, minimal }) => {
     const total = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const theme = data.theme || 'minimal';
     
-    // Clean White Design - Consistent regardless of app theme
+    // THEME CONFIGURATION
+    const getThemeStyles = (t: string) => {
+        switch(t) {
+            case 'creative':
+                return {
+                    container: "bg-[#111] text-white border-zinc-800",
+                    headerText: "text-white font-sans",
+                    mutedText: "text-zinc-500",
+                    border: "border-zinc-800",
+                    accentBg: "bg-white text-black",
+                    font: "font-sans"
+                };
+            case 'agency':
+                 return {
+                    container: "bg-white text-black border-zinc-200 font-sans",
+                    headerText: "text-black font-sans font-bold",
+                    mutedText: "text-zinc-400",
+                    border: "border-zinc-100",
+                    accentBg: "bg-black text-white",
+                    font: "font-sans"
+                };
+            case 'corporate':
+                return {
+                    container: "bg-white text-slate-900 border-slate-200 font-serif",
+                    headerText: "text-slate-900 font-serif tracking-tight",
+                    mutedText: "text-slate-500",
+                    border: "border-slate-200",
+                    accentBg: "bg-slate-900 text-white",
+                    font: "font-serif"
+                };
+            case 'startup':
+                return {
+                    container: "bg-white text-zinc-900 border-zinc-200 font-sans",
+                    headerText: "text-emerald-600 font-bold tracking-tight",
+                    mutedText: "text-zinc-500",
+                    border: "border-zinc-100",
+                    accentBg: "bg-emerald-500 text-white",
+                    font: "font-sans"
+                };
+            case 'tech':
+                return {
+                    container: "bg-black text-green-400 border-green-900/50 font-mono",
+                    headerText: "text-green-500 font-mono uppercase",
+                    mutedText: "text-green-700",
+                    border: "border-green-900/30",
+                    accentBg: "bg-green-500 text-black",
+                    font: "font-mono"
+                };
+            case 'elegant':
+                return {
+                    container: "bg-[#faf9f6] text-stone-800 border-stone-200",
+                    headerText: "text-stone-900 font-serif italic",
+                    mutedText: "text-stone-500",
+                    border: "border-stone-200",
+                    accentBg: "bg-stone-800 text-[#faf9f6]",
+                    font: "font-serif"
+                };
+            case 'modern':
+                return {
+                    container: "bg-slate-50 text-slate-800 border-slate-200 shadow-lg",
+                    headerText: "text-indigo-600 font-sans font-bold",
+                    mutedText: "text-slate-400",
+                    border: "border-slate-200",
+                    accentBg: "bg-indigo-600 text-white",
+                    font: "font-sans"
+                };
+            case 'classic':
+                return {
+                    container: "bg-white text-gray-900 border-double border-4 border-gray-300",
+                    headerText: "text-gray-900 font-serif uppercase tracking-widest",
+                    mutedText: "text-gray-500",
+                    border: "border-gray-300",
+                    accentBg: "bg-gray-800 text-white",
+                    font: "font-serif"
+                };
+            case 'consultant':
+                return {
+                    container: "bg-white text-neutral-800 border-neutral-200",
+                    headerText: "text-neutral-800 font-sans font-light tracking-wide",
+                    mutedText: "text-neutral-400",
+                    border: "border-neutral-200",
+                    accentBg: "bg-neutral-200 text-neutral-800",
+                    font: "font-sans"
+                };
+            case 'minimal':
+            default:
+                return {
+                    container: "bg-white text-black border-zinc-200",
+                    headerText: "text-gray-900 font-sans font-bold",
+                    mutedText: "text-gray-500",
+                    border: "border-gray-100",
+                    accentBg: "bg-black text-white",
+                    font: "font-sans"
+                };
+        }
+    };
+    
+    const styles = getThemeStyles(theme);
+
+    if (theme === 'agency') {
+        return (
+             <div className={`w-full aspect-[3/4] md:aspect-auto md:min-h-[600px] rounded-lg shadow-2xl p-8 md:p-12 relative overflow-hidden flex flex-col border transition-colors duration-300 ${styles.container}`}>
+                {/* Header Agency Style */}
+                <div className="flex justify-between items-start mb-16">
+                     <div className="flex items-center gap-3">
+                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shadow-sm ${styles.accentBg}`}>
+                             {data.clientName ? data.clientName.charAt(0).toUpperCase() : 'C'}
+                         </div>
+                         <div className={`text-xl font-bold ${styles.headerText}`}>{data.clientName || 'Client Name'}</div>
+                     </div>
+                     <div className="text-right">
+                         <div className={`text-xs uppercase tracking-widest ${styles.mutedText}`}>Invoice #</div>
+                         <div className={`font-mono text-lg ${styles.headerText}`}>{data.invoiceNumber}</div>
+                     </div>
+                </div>
+
+                {/* Center Amount */}
+                <div className="text-center mb-16">
+                    <div className={`text-xs font-bold uppercase tracking-widest mb-4 ${styles.mutedText}`}>Amount Due</div>
+                    <div className={`text-6xl font-bold tracking-tight ${styles.headerText}`}>${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                </div>
+
+                {/* Items */}
+                <div className="flex-1 border-t pt-8 border-zinc-100">
+                    <div className="space-y-4">
+                        {data.items.map((item, i) => (
+                            <div key={i} className="flex justify-between items-center py-2">
+                                <span className={`font-medium ${styles.font}`}>{item.description || 'Service'}</span>
+                                <span className={`${styles.mutedText} font-mono`}>${item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                 {/* Footer / Stripe Integration */}
+                <div className={`mt-auto pt-8 border-t ${styles.border}`}>
+                    {!minimal && (
+                        <div className={`rounded-xl p-4 flex items-center justify-between border ${styles.border} bg-gray-50`}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-[#635BFF] rounded flex items-center justify-center text-white font-bold text-xs">S</div>
+                                <div className="text-xs">
+                                    <div className="font-bold text-gray-900">Secure Payment</div>
+                                    <div className={styles.mutedText}>Processed by Stripe</div>
+                                </div>
+                            </div>
+                            <div className={`flex items-center gap-2 text-xs ${styles.mutedText}`}>
+                                <ShieldCheck className="w-3 h-3" /> Encrypted
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="w-full aspect-[3/4] md:aspect-auto md:min-h-[600px] bg-white text-black rounded-lg shadow-2xl p-8 md:p-12 relative overflow-hidden flex flex-col border border-zinc-200">
+        <div className={`w-full aspect-[3/4] md:aspect-auto md:min-h-[600px] rounded-lg shadow-2xl p-8 md:p-12 relative overflow-hidden flex flex-col border transition-colors duration-300 ${styles.container}`}>
             
             {/* Header */}
             <div className="flex justify-between items-start mb-16">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white bg-black">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shadow-sm ${styles.accentBg}`}>
                         {data.clientName ? data.clientName.charAt(0).toUpperCase() : 'C'}
                     </div>
                     <div>
-                        <div className="font-bold text-lg text-black">{data.clientName || 'Client Name'}</div>
-                        <div className="text-sm text-gray-500">Invoice #{data.invoiceNumber}</div>
+                        <div className={`text-lg ${styles.headerText}`}>{data.clientName || 'Client Name'}</div>
+                        <div className={`text-sm ${styles.mutedText}`}>Invoice #{data.invoiceNumber}</div>
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-xs font-bold uppercase tracking-wider mb-1 text-gray-400">Amount Due</div>
-                    <div className="text-3xl font-bold text-gray-900">${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                    <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${styles.mutedText}`}>Amount Due</div>
+                    <div className={`text-3xl font-bold ${styles.headerText}`}>${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                 </div>
             </div>
 
             {/* Content */}
             <div className="flex-1">
                 {/* Table Header */}
-                <div className="flex justify-between text-xs font-bold uppercase tracking-wider border-b pb-4 mb-4 text-gray-400 border-gray-100">
+                <div className={`flex justify-between text-xs font-bold uppercase tracking-wider border-b pb-4 mb-4 ${styles.mutedText} ${styles.border}`}>
                     <span>Description</span>
                     <span>Amount</span>
                 </div>
@@ -492,30 +701,30 @@ export const InvoicePreviewCard: React.FC<{ data: Invoice; minimal?: boolean }> 
                 <div className="space-y-4">
                     {data.items.map((item, i) => (
                         <div key={i} className="flex justify-between items-start">
-                            <span className="font-medium text-gray-900">{item.description || 'Item Description'}</span>
-                            <span className="text-gray-600 font-mono">${item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            <span className={`font-medium ${styles.font}`}>{item.description || 'Item Description'}</span>
+                            <span className={`${styles.mutedText} font-mono`}>${item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* Footer / Stripe Integration */}
-            <div className="mt-auto pt-8 border-t border-gray-100/10">
+            <div className={`mt-auto pt-8 border-t ${styles.border}`}>
                  {!minimal && (
-                     <div className="rounded-xl p-4 flex items-center justify-between bg-gray-50 border border-gray-100">
+                     <div className={`rounded-xl p-4 flex items-center justify-between border ${theme === 'creative' ? 'bg-zinc-900 border-zinc-800' : 'bg-gray-50 border-gray-100'}`}>
                          <div className="flex items-center gap-3">
                              <div className="w-8 h-8 bg-[#635BFF] rounded flex items-center justify-center text-white font-bold text-xs">S</div>
                              <div className="text-xs">
-                                 <div className="font-bold text-gray-900">Secure Payment</div>
-                                 <div className="text-gray-500">Processed by Stripe</div>
+                                 <div className={`font-bold ${theme === 'creative' ? 'text-white' : 'text-gray-900'}`}>Secure Payment</div>
+                                 <div className={styles.mutedText}>Processed by Stripe</div>
                              </div>
                          </div>
-                         <div className="flex items-center gap-2 text-xs text-gray-400">
+                         <div className={`flex items-center gap-2 text-xs ${styles.mutedText}`}>
                              <ShieldCheck className="w-3 h-3" /> Encrypted
                          </div>
                      </div>
                  )}
-                 <div className="mt-6 flex justify-between items-center text-xs text-gray-400">
+                 <div className={`mt-6 flex justify-between items-center text-xs ${styles.mutedText}`}>
                      <span>Due in 14 days</span>
                      <span>Thank you for your business</span>
                  </div>
@@ -530,6 +739,9 @@ export const ClientInvoiceView: React.FC<{ invoice: Invoice; onPay: () => void; 
 
     const handlePay = () => {
         setIsProcessing(true);
+        // SECURITY: Simulated Server-side handshake
+        // In reality, this would await a POST to /api/create-payment-intent
+        // Then confirm on backend via webhook
         setTimeout(() => {
             setIsProcessing(false);
             setSuccess(true);
