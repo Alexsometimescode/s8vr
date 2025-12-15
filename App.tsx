@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChange, getSession, signOut } from './src/lib/auth';
 import { fetchInvoices, createInvoice, updateInvoice, updateInvoiceAccessToken } from './src/lib/invoices';
 import { fetchClients, Client } from './src/lib/clients';
@@ -22,11 +22,11 @@ interface ToastMessage {
   message: string;
 }
 
-const Toast: React.FC<{ toast: ToastMessage; onClose: () => void }> = ({ toast, onClose }) => {
+const Toast: React.FC<{ toast: ToastMessage; onClose: (id: string) => void }> = ({ toast, onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000); // Auto dismiss after 5s
+    const timer = setTimeout(() => onClose(toast.id), 5000); // Auto dismiss after 5s
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [toast.id, onClose]);
 
   return (
     <div className={`flex items-start gap-3 p-4 rounded-xl border shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-5 duration-300 ${
@@ -45,7 +45,7 @@ const Toast: React.FC<{ toast: ToastMessage; onClose: () => void }> = ({ toast, 
         <p className="font-semibold text-sm">{toast.title}</p>
         <p className="text-sm opacity-80 mt-0.5">{toast.message}</p>
       </div>
-      <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg transition-colors shrink-0">
+      <button onClick={() => onClose(toast.id)} className="p-1 hover:bg-white/10 rounded-lg transition-colors shrink-0">
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -103,9 +103,9 @@ const App: React.FC = () => {
     setToasts(prev => [...prev, { id, type, title, message }]);
   };
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  }, []);
 
   // Fetch user profile from database
   const fetchUserProfile = async (authUser: any) => {
@@ -278,7 +278,7 @@ const App: React.FC = () => {
       if (emailResult.success) {
         showToast('success', 'Invoice Sent!', `Invoice #${newInvoice.invoiceNumber} has been sent to ${newInvoice.clientEmail}`);
       } else {
-        showToast('success', 'Invoice Saved', `Invoice created but email could not be sent: ${emailResult.error}`);
+        showToast('info', 'Invoice Saved', `Invoice created but email could not be sent: ${emailResult.error}`);
       }
     } catch (error: any) {
       console.error('Error creating invoice:', error);
@@ -386,7 +386,7 @@ const App: React.FC = () => {
         {toasts.length > 0 && (
           <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 max-w-md">
             {toasts.map(toast => (
-              <Toast key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+              <Toast key={toast.id} toast={toast} onClose={removeToast} />
             ))}
           </div>
         )}
@@ -425,7 +425,7 @@ const App: React.FC = () => {
       {toasts.length > 0 && (
         <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 max-w-md">
           {toasts.map(toast => (
-            <Toast key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+            <Toast key={toast.id} toast={toast} onClose={removeToast} />
           ))}
         </div>
       )}
