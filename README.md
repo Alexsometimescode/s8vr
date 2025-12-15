@@ -1,20 +1,277 @@
+# s8vr - Smart Invoicing & Reminder Tool
+
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <h3>Recover your lost revenue.</h3>
+  <p>A minimal, smart invoicing + reminder tool built for freelancers</p>
 </div>
 
-# Run and deploy your AI Studio app
+---
 
-This contains everything you need to run your app locally.
+## 🎯 Overview
 
-View your app in AI Studio: https://ai.studio/apps/drive/1G4Vo5uK8K341n3D3hKz8aWVg_-YKRcxG
+**s8vr** is a professional invoicing platform designed specifically for freelancers. Create beautiful invoices, automate payment reminders, and get paid directly through Stripe Connect.
 
-## Run Locally
+### Key Features
 
-**Prerequisites:**  Node.js
+- ✅ **Professional Invoice Creation** - 10 premium templates with customization options
+- ✅ **Stripe Connect Integration** - Direct payments to your Stripe account
+- ✅ **Automated Reminders** - Configurable email follow-ups for unpaid invoices
+- ✅ **Client Management** - Organize and track all your clients
+- ✅ **Financial Reports** - Visual charts and CSV exports
+- ✅ **Admin Dashboard** - Platform management and analytics
+- ✅ **Multi-tenant Architecture** - Secure data isolation with Row Level Security
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 20.x or higher
+- **npm** or **yarn**
+- **Supabase** account (for database)
+- **Stripe** account (for payments)
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Alexsometimescode/s8vr-App.git
+   cd s8vr-App
+   ```
+
+2. **Install frontend dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Install backend dependencies:**
+   ```bash
+   cd backend
+   npm install
+   cd ..
+   ```
+
+4. **Set up environment variables:**
+   
+   **Frontend** (`.env`):
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+   VITE_API_URL=http://localhost:3001
+   ```
+   
+   **Backend** (`backend/.env`):
+   ```env
+   PORT=3001
+   NODE_ENV=development
+   FRONTEND_URL=http://localhost:3000
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+   STRIPE_WEBHOOK_SECRET=your_webhook_secret
+   RESEND_API_KEY=your_resend_api_key
+   ```
+
+5. **Set up the database:**
+   - Run migrations from `backend/migrations/` in Supabase SQL Editor
+   - See `GETTING_STARTED.md` for detailed migration instructions
+
+6. **Run the development servers:**
+   
+   **Terminal 1 - Backend:**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   
+   **Terminal 2 - Frontend:**
+   ```bash
+   npm run dev
+   ```
+
+7. **Open your browser:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001
+
+---
+
+## 📁 Project Structure
+
+```
+s8vr-App/
+├── components/
+│   ├── app/          # Main app components (Dashboard, InvoiceBuilder, etc.)
+│   ├── auth/         # Login & SignUp components
+│   └── ui/           # Shared UI components
+├── src/
+│   └── lib/          # Supabase client, auth, data access functions
+├── backend/
+│   ├── src/
+│   │   ├── server.ts         # Express API server
+│   │   └── emailTemplates.ts # HTML email templates
+│   └── migrations/   # Database migration files
+├── public/           # Static assets (favicon, etc.)
+├── types.ts          # TypeScript type definitions
+├── App.tsx           # Main application component
+└── GETTING_STARTED.md # Comprehensive documentation
+```
+
+---
+
+## 🔧 Tech Stack
+
+### Frontend
+- **React** 19.2.1 - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool & dev server
+- **Tailwind CSS** - Styling
+- **Recharts** - Charts & graphs
+- **Stripe Elements** - Payment forms
+- **Supabase Client** - Database & auth
+
+### Backend
+- **Node.js** + **Express** - API server
+- **TypeScript** - Type safety
+- **Stripe SDK** - Payment processing
+- **Supabase** - Database client
+- **Resend** - Email delivery
+
+### Infrastructure
+- **Supabase** - PostgreSQL database, Authentication, Row Level Security
+- **Stripe Connect** - Payment processing with connected accounts
+- **Resend** - Transactional email delivery
+
+---
+
+## 📚 Documentation
+
+For comprehensive documentation, see **[GETTING_STARTED.md](./GETTING_STARTED.md)** which includes:
+
+- Detailed setup instructions
+- Database schema documentation
+- API endpoint reference
+- Stripe Connect implementation guide
+- Testing procedures
+- Troubleshooting guide
+- Known issues and solutions
+
+---
+
+## 🎨 Features
+
+### Invoice Management
+- Create professional invoices with 10 premium templates
+- Customize colors, fonts, and backgrounds (Pro feature)
+- Generate secure payment links
+- Send invoices via email with branded templates
+- Track invoice status (draft, pending, paid, overdue)
+
+### Payment Processing
+- Stripe Connect integration for direct payments
+- Secure checkout with Stripe Elements
+- Automatic invoice status updates
+- Payment webhook handling
+
+### Automated Reminders
+- Configurable reminder frequency (daily, weekly, biweekly, custom)
+- Multiple tone options (friendly, formal, professional, urgent, casual)
+- Scheduled email delivery
+- Beautiful branded reminder emails
+
+### Client Management
+- Add, edit, and organize clients
+- Track client payment history
+- Quick client selection when creating invoices
+
+### Reports & Analytics
+- Visual charts for revenue tracking
+- Invoice status distribution
+- CSV export functionality
+- Time-filtered reports
+
+### Admin Dashboard
+- Platform statistics and analytics
+- User management (plan changes, ban/unban)
+- Invoice management
+- Template management (CRUD operations)
+- Feedback and bug report handling
+- Reminder log monitoring
+
+---
+
+## 🔐 Security
+
+- **Row Level Security (RLS)** - Users can only access their own data
+- **Secure invoice links** - Access tokens required for public invoice viewing
+- **Stripe webhook verification** - All webhooks are cryptographically verified
+- **Environment variables** - Sensitive keys stored securely
+- **Supabase Auth** - Industry-standard authentication
+
+---
+
+## 🧪 Testing
+
+### Stripe Test Cards
+
+Use these test card numbers for testing payments:
+
+- **Success:** `4242 4242 4242 4242`
+- **Decline:** `4000 0000 0000 0002`
+- **3D Secure:** `4000 0025 0000 3155`
+
+Any future expiry date and CVC will work.
+
+### Test Mode
+
+The app runs in Stripe test mode by default. Switch to live mode in production by updating your Stripe keys.
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Database connection errors**
+   - Verify Supabase credentials in `.env`
+   - Check that migrations have been run
+   - Ensure RLS policies are correctly configured
+
+2. **Stripe payment failures**
+   - Verify Stripe keys are correct
+   - Check webhook endpoint configuration
+   - Ensure webhook secret matches
+
+3. **Email sending issues**
+   - Verify Resend API key
+   - Check backend logs for email errors
+   - Ensure email templates are properly formatted
+
+For more detailed troubleshooting, see [GETTING_STARTED.md](./GETTING_STARTED.md#troubleshooting).
+
+---
+
+## 📝 License
+
+ISC
+
+---
+
+## 🤝 Contributing
+
+This is a private project. For questions or issues, please contact the maintainer.
+
+---
+
+## 📞 Support
+
+For detailed setup instructions and documentation, see **[GETTING_STARTED.md](./GETTING_STARTED.md)**.
+
+---
+
+<div align="center">
+  <p>Built with ❤️ for freelancers</p>
+  <p><strong>s8vr</strong> - Recover your lost revenue.</p>
+</div>
