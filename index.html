@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>s8vr - Smart Invoicing</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta name="theme-color" content="#09090b" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -17,14 +20,20 @@
               border: 'var(--border)',
               textMain: 'var(--text-main)',
               textMuted: 'var(--text-muted)',
-              primary: '#10B981', // Emerald 500
-              primaryDark: '#047857',
+              primary: '#10b981', // Emerald 500 - used sparingly
+              accent: '#10b981', // Emerald 500
+              background: '#09090b', // Zinc 950
+              surface: '#18181b', // Zinc 900
+              textMain: '#a1a1aa', // Zinc 400
+              textMuted: '#71717a', // Zinc 500
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
             },
             animation: {
               'bell-ring': 'bell-ring 2s ease-in-out infinite',
+              'shimmer': 'shimmer 2s infinite',
+              'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
             },
             keyframes: {
               'bell-ring': {
@@ -34,37 +43,94 @@
                 '30%': { transform: 'rotate(5deg)' },
                 '40%': { transform: 'rotate(-5deg)' },
                 '50%': { transform: 'rotate(0deg)' },
+              },
+              'shimmer': {
+                '100%': { transform: 'translateX(100%)' },
+              },
+              'pulse-subtle': {
+                '0%, 100%': { opacity: '1' },
+                '50%': { opacity: '0.5' },
               }
             }
           }
         }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
       :root {
-        --background: #ffffff;
-        --surface: #f4f4f5;
-        --surface-highlight: #e4e4e7;
-        --border: #e4e4e7;
-        --text-main: #18181b;
+        /* Brand Identity - s8vr */
+        /* Primary Background: Zinc 950 */
+        --background: #09090b;
+        /* Surface: Zinc 900 */
+        --surface: #18181b;
+        /* Surface Highlight: Zinc 800 */
+        --surface-highlight: #27272a;
+        /* Border: Zinc 800 */
+        --border: #27272a;
+        /* Text: Zinc 400 */
+        --text-main: #a1a1aa;
+        /* Text Muted: Zinc 500 */
         --text-muted: #71717a;
+        /* Accent: Emerald 500 - used sparingly */
+        --accent: #10b981;
       }
 
       .dark {
-        --background: #050505;
-        --surface: #0e0e0e;
+        /* Dark mode is default - same as root */
+        --background: #09090b;
+        --surface: #18181b;
         --surface-highlight: #27272a;
         --border: #27272a;
-        --text-main: #ffffff;
-        --text-muted: #a1a1aa;
+        --text-main: #a1a1aa;
+        --text-muted: #71717a;
+        --accent: #10b981;
+      }
+
+      :root:not(.dark) {
+        /* Light mode */
+        --background: #ffffff;
+        --surface: #f9fafb;
+        --surface-highlight: #f3f4f6;
+        --border: #e5e7eb;
+        --text-main: #111827;
+        --text-muted: #6b7280;
+        --accent: #10b981;
+      }
+
+      /* Date input styling - visible calendar icon */
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+        opacity: 0.7;
+      }
+
+      :root:not(.dark) input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0);
+        opacity: 0.7;
+      }
+
+      /* Date picker calendar styling */
+      input[type="date"] {
+        color-scheme: dark;
+      }
+
+      :root:not(.dark) input[type="date"] {
+        color-scheme: light;
       }
 
       body {
         background-color: var(--background);
         color: var(--text-main);
         font-family: 'Inter', sans-serif;
+        font-weight: 400;
         transition: background-color 0.3s, color 0.3s;
+        margin: 0;
+        padding: 0;
+      }
+      
+      #root {
+        min-height: 100vh;
       }
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
@@ -81,18 +147,17 @@
         background: var(--text-muted); 
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
-  }
-}
-</script>
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      // Apply theme immediately on page load to prevent flash
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme !== 'light') {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+      }
+    </script>
   </body>
 </html>

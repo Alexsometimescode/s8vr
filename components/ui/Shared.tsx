@@ -46,12 +46,12 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none";
   
   const variants = {
-    // Primary: In dark mode white text black, in light mode black text white
-    primary: "bg-textMain text-background hover:opacity-90",
-    secondary: "bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]",
+    // Primary: Emerald 500 - used sparingly for key CTAs only
+    primary: "bg-[#10b981] text-white hover:bg-[#059669] font-medium",
+    secondary: "bg-surface border border-border text-textMain hover:bg-surfaceHighlight",
     ghost: "text-textMuted hover:text-textMain hover:bg-surfaceHighlight",
     outline: "border border-border text-textMuted hover:border-textMuted hover:text-textMain bg-transparent",
-    danger: "text-red-400 hover:bg-red-500/10 hover:text-red-500"
+    danger: "text-red-400 hover:bg-red-500/10 hover:text-red-500 border border-red-500/20"
   };
 
   const sizes = {

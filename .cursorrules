@@ -1,0 +1,221 @@
+# S8VR - Cursor Rules & Project Context
+
+## 🎯 APP SUMMARY
+
+**S8VR** is a minimal smart invoicing + reminder tool built for freelancers to:
+- Create professional invoices for their services
+- Have an overview of all invoices and payments
+- Set up automated reminders for clients who don't respond
+- Receive payments directly via Stripe Connect (freelancer's own account)
+
+### Core MVP Features:
+1. **Invoice Creation** - Create and send professional invoices
+2. **Stripe Connect Integration** - Payments go directly to freelancer's Stripe account
+3. **Client Management** - Track clients and their payment history
+4. **Reminders** - Automated follow-ups for unpaid invoices
+5. **Reports** - Financial overview with charts and CSV exports
+6. **Multi-tenant** - Users only see their own data (RLS)
+
+### User Types:
+- **Free Plan** - Basic features, limited invoices
+- **Pro Plan** - Unlimited invoices, premium templates, advanced reports
+- **Admin** - Full access, can view all users, manage the platform
+
+---
+
+## 🔧 MCP SERVER ACCESS
+
+### Supabase MCP
+- **Available**: YES ✅
+- **Usage**: Use Supabase MCP tools directly for ALL database operations
+- **DO NOT**: Use browser tools to navigate Supabase dashboard for edits
+- **Actions**: Create tables, modify RLS policies, run SQL, manage storage buckets
+- **After DB Changes**: Always restart the local dev server to refresh connections
+
+### Stripe MCP  
+- **Available**: YES ✅
+- **Usage**: Use Stripe MCP for all payment-related configurations
+- **Actions**: Create products, manage Connect accounts, configure webhooks
+
+### Browser Extension MCP
+- **Available**: YES ✅
+- **Usage**: For testing the frontend app and visual verification
+- **DO NOT**: Use for database admin tasks (use Supabase MCP instead)
+
+---
+
+## 📋 DEVELOPMENT WORKFLOW
+
+### Before Starting Any New Task:
+1. Review this rules file for context
+2. Check current state of relevant files
+3. Understand what the user is asking for
+4. Plan the implementation approach
+
+### When Implementing New Features:
+1. **Research Best Practices**: Look at how top companies implement similar features
+   - Reference: Stripe, Linear, Attio, Notion, Spacious
+   - Follow their UX patterns and conventions
+   
+2. **Create Test Cases First**: 
+   - Define what success looks like
+   - Write expected inputs and outputs
+   - Consider edge cases
+
+3. **Implement the Feature**:
+   - Follow the existing code style
+   - Use TypeScript properly with types
+   - Keep components modular
+   
+4. **Test Before Asking User**:
+   - Use browser tools to navigate and test
+   - Check console for errors
+   - Verify data persistence
+   - Test edge cases
+   - Only ask user to test after confirming basic functionality works
+
+### Database Modifications:
+```
+1. Create/modify migration file
+2. Run SQL via Supabase MCP
+3. Restart local dev server
+4. Verify changes in app
+```
+
+### After Any Code Change:
+1. Check for linter errors
+2. Test the changed functionality
+3. Verify no regressions
+
+---
+
+## 🎨 DESIGN PRINCIPLES
+
+### Brand Identity:
+- **Colors**: Dark theme (Zinc 950 background), Emerald 500 accents
+- **Typography**: Clean, modern sans-serif
+- **Style**: Professional, minimal, inspired by Linear/Attio/Stripe
+
+### UI Guidelines:
+- Use existing component patterns
+- Maintain consistent spacing and typography
+- All modals use blur backdrop
+- Forms have clear validation feedback
+- Loading states use skeleton animations
+
+---
+
+## 🚀 PRIORITY ACTIONS
+
+### Cursor Should Handle:
+- All code changes and file modifications
+- Database migrations and RLS policies (via Supabase MCP)
+- Stripe configurations (via Stripe MCP)
+- Testing via browser tools
+- Error diagnosis and fixes
+
+### Ask User Only When:
+- Need credentials or API keys not in .env
+- Requires manual action in external service without MCP access
+- User preference decisions (design choices, feature scope)
+- Deployment to production
+
+### When Asking User for Help:
+- Be specific about what's needed
+- Explain why Cursor can't do it
+- Provide exact steps if manual action needed
+- Include any relevant context or URLs
+
+---
+
+## 📁 PROJECT STRUCTURE
+
+```
+s8vr-App/
+├── src/
+│   └── lib/           # Supabase client, auth, data access
+├── components/
+│   ├── app/           # Main app components (Dashboard, ProfileTab, etc.)
+│   ├── auth/          # Login, SignUp
+│   └── ui/            # Shared UI components (Button, Modal, Skeleton)
+├── backend/
+│   ├── migrations/    # SQL migration files
+│   └── src/           # Backend server (if needed)
+├── .env               # Environment variables
+└── .cursorrules       # This file
+```
+
+---
+
+## 🔑 ENVIRONMENT VARIABLES
+
+Required in `.env`:
+```
+VITE_SUPABASE_URL=<supabase-project-url>
+VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
+VITE_STRIPE_PUBLISHABLE_KEY=<stripe-publishable-key>
+RESEND_API_KEY=<resend-api-key>
+```
+
+---
+
+## 🧪 TESTING CHECKLIST
+
+Before marking a feature complete:
+- [ ] Feature works as expected (happy path)
+- [ ] Error states handled gracefully
+- [ ] Loading states present
+- [ ] Data persists after refresh
+- [ ] No console errors
+- [ ] Mobile responsive (if applicable)
+- [ ] Matches design system
+
+---
+
+## 📝 CURRENT STATE
+
+### Working Features:
+- ✅ Authentication (Supabase Auth)
+- ✅ Profile editing (name, email change, avatar, logo)
+- ✅ Dashboard overview with stats
+- ✅ Invoice list view
+- ✅ Client management
+- ✅ Reports with charts
+- ✅ Settings (theme toggle)
+- ✅ Feedback submission
+- ✅ Skeleton loading states
+
+### In Progress:
+- 🔄 Invoice creation and sending
+- 🔄 Stripe Connect integration
+- 🔄 Email sending via Resend
+
+### Pending:
+- ⏳ Payment processing
+- ⏳ Automated reminders
+- ⏳ Premium templates
+- ⏳ Admin dashboard
+
+---
+
+## ⚠️ KNOWN ISSUES
+
+1. **RLS Policies**: May need to run FIX_DATABASE.sql if "infinite recursion" errors appear
+2. **Storage Buckets**: Currently using base64 for images (no storage buckets needed)
+3. **Clients Loading**: Works after profile is properly set up
+
+---
+
+## 🔄 REFRESH CHECKLIST
+
+After modifying database:
+1. Run migration via Supabase MCP
+2. Stop local dev server (Ctrl+C)
+3. Restart with `npm run dev`
+4. Hard refresh browser (Ctrl+Shift+R)
+5. Clear browser cache if needed
+
+---
+
+*Last Updated: December 13, 2025*
+
