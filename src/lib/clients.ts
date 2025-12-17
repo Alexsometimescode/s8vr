@@ -6,6 +6,8 @@ export interface Client {
   name: string;
   email: string;
   phone?: string;
+  company?: string;
+  address?: string;
   website?: string;
   contact_person?: string;
   active: boolean;

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { signIn } from '../../src/lib/auth';
 import { Button, Logo } from '../ui/Shared';
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
 
 interface LoginProps {
   onSuccess: () => void;
   onSwitchToSignUp: () => void;
+  onBackToLanding?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp }) => {
+export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBackToLanding }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,15 @@ export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp }) => 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {onBackToLanding && (
+          <button
+            onClick={onBackToLanding}
+            className="mb-6 flex items-center gap-2 text-textMuted hover:text-textMain transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to home</span>
+          </button>
+        )}
         <div className="text-center mb-8">
           <Logo className="text-3xl mb-4" />
           <h1 className="text-2xl font-bold text-textMain mb-2">Welcome back</h1>

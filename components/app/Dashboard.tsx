@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Logo } from '../ui/Shared';
 import { Invoice, ReminderFrequency, ReminderTone } from '../../types';
-import { LogOut, ArrowUpRight, Copy, Check, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, Zap, Clock, Calendar, Sliders, DollarSign, Activity, Trash2, ArrowLeft, AlertCircle, Settings, MessageSquarePlus, Upload, Shield, AlertTriangle, X, Send, Lock, Moon, Sun, ChevronLeft, LayoutGrid, Users, ChevronDown, Mail, Phone, Globe, User, Loader2, CreditCard, BarChart3, PanelLeftClose, PanelLeft, Sparkles, Bug } from 'lucide-react';
+import { LogOut, ArrowUpRight, Copy, Check, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, Zap, Clock, Calendar, Sliders, DollarSign, Activity, Trash2, ArrowLeft, AlertCircle, Settings, MessageSquarePlus, Upload, Shield, AlertTriangle, X, Send, Lock, ChevronLeft, LayoutGrid, Users, ChevronDown, Mail, Phone, Globe, User, Loader2, CreditCard, BarChart3, PanelLeftClose, PanelLeft, Sparkles, Bug, MoreVertical } from 'lucide-react';
 import { InvoicePreviewCard } from './InvoiceBuilder';
 import { fetchClients, createClient, updateClient, deleteClient } from '../../src/lib/clients';
 import { deleteInvoice } from '../../src/lib/invoices';
@@ -22,8 +22,6 @@ interface DashboardProps {
   onLogout: () => void;
   onCreate: () => void;
   onViewClient: (id: string) => void;
-  isDarkMode: boolean;
-  toggleTheme: () => void;
   userProfile?: any;
   onRefresh?: () => void;
   onNavigateAdmin?: () => void;
@@ -38,14 +36,14 @@ const NavTab = ({ active, onClick, icon, label, collapsed }: any) => (
       className={`relative flex items-center transition-all duration-200 rounded-xl w-full
       ${active
           ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20'
-          : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain border border-transparent'
+          : 'text-white hover:bg-white/10 hover:text-white border border-transparent'
       }
       ${collapsed ? 'justify-center p-3' : 'justify-start px-4 py-3 gap-3'}
       `}
     >
-      <span className={`shrink-0 transition-colors ${active ? 'text-[#10b981]' : ''}`}>{icon}</span>
+      <span className={`shrink-0 transition-colors flex items-center justify-center ${active ? 'text-[#10b981]' : 'text-white'}`}>{icon}</span>
       {!collapsed && (
-        <span className={`font-medium whitespace-nowrap text-[14px] ${active ? 'text-[#10b981]' : ''}`}>{label}</span>
+        <span className={`font-medium whitespace-nowrap text-[14px] ${active ? 'text-[#10b981]' : 'text-white'}`}>{label}</span>
       )}
       {/* Active indicator bar */}
       {active && !collapsed && (
@@ -63,8 +61,11 @@ const NavTab = ({ active, onClick, icon, label, collapsed }: any) => (
   </div>
 );
 
-const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelete?: () => void; isActive?: boolean }> = ({ invoice, onClick, onDelete, isActive }) => {
+const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelete?: () => void; isActive?: boolean; onCopy?: () => void }> = ({ invoice, onClick, onDelete, isActive, onCopy }) => {
   const isPaid = invoice.status === 'paid';
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   
   // Calculate Days
   const today = new Date();
@@ -72,12 +73,38 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
   const diffTime = dueDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+  // Update menu position when opened
+  useEffect(() => {
+    if (menuOpen && menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+  }, [menuOpen]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (menuOpen) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest(`[data-invoice-menu="${invoice.id}"]`) && !target.closest(`[data-menu-dropdown="${invoice.id}"]`)) {
+          setMenuOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [menuOpen, invoice.id]);
+
   return (
     <div 
       onClick={onClick}
-      className={`group relative flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer overflow-hidden ${isActive ? 'bg-surfaceHighlight border-emerald-500/50' : 'bg-surface border-border hover:border-textMuted'}`}
+      className={`group relative flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer ${isActive ? 'bg-surfaceHighlight border-emerald-500/50' : 'bg-surface border-border md:hover:border-textMuted'}`}
+      style={{ zIndex: menuOpen ? 10000 : 'auto' }}
     >
-        <div className="flex items-center gap-4 z-10">
+        <div className="flex items-center gap-4">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm border ${isPaid ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-surfaceHighlight text-textMuted border-border'}`}>
                 {invoice.clientName.charAt(0)}
             </div>
@@ -87,10 +114,10 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
             </div>
         </div>
 
-        <div className="flex items-center gap-4 z-10 relative">
-            {/* Amount & Status - Slide Left on Hover */}
-            <div className="flex items-center gap-4 transition-transform duration-300 group-hover:-translate-x-32">
-                <div className="font-bold font-mono text-sm text-textMain">${invoice.amount.toLocaleString()}</div>
+        <div className="flex items-center gap-2 relative">
+            {/* Amount & Status - Slide Left on Hover (Desktop Only) */}
+            <div className="flex items-center gap-3 transition-transform duration-300 md:group-hover:-translate-x-28">
+                <div className="font-bold font-mono text-sm text-textMain" style={{ fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif' }}>${invoice.amount.toLocaleString()}</div>
                 
                 {/* Status Badge - Days Only */}
                 {isPaid ? (
@@ -110,12 +137,110 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
                 )}
             </div>
 
-            {/* Action Buttons - Slide In from Right */}
-            <div className="absolute right-0 flex gap-2 translate-x-40 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
-                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full" icon={<Copy className="w-4 h-4"/>} onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(window.location.origin + '/invoice/' + invoice.id); }} />
-                <Button size="sm" variant="outline" className="h-8 w-8 p-0 rounded-full bg-surface" icon={<ArrowUpRight className="w-4 h-4"/>} onClick={(e) => { e.stopPropagation(); onClick(); }} />
+            {/* Mobile: 3-Dots Menu */}
+            <div className="md:hidden relative" data-invoice-menu={invoice.id}>
+                <button
+                    ref={menuButtonRef}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(!menuOpen);
+                    }}
+                    className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border hover:bg-surfaceHighlight hover:border-textMuted transition-all relative"
+                    style={{ zIndex: menuOpen ? 10001 : 'auto' }}
+                >
+                    <MoreVertical className="w-4 h-4 text-textMuted" />
+                </button>
+                
+                {/* Dropdown Menu - Absolute positioning to overlay */}
+                {menuOpen && (
+                    <>
+                        <div className="fixed inset-0 z-[9998]" onClick={() => setMenuOpen(false)} />
+                        <div 
+                            data-menu-dropdown={invoice.id}
+                            className="absolute right-0 top-10 bg-surface border border-border rounded-lg shadow-2xl min-w-[160px] overflow-hidden"
+                            style={{ zIndex: 10002 }}
+                        >
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(window.location.origin + '/invoice/' + invoice.id);
+                                    if (onCopy) onCopy();
+                                    setMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm text-textMain hover:bg-surfaceHighlight flex items-center gap-3 transition-colors"
+                            >
+                                <Copy className="w-4 h-4 text-textMuted" />
+                                Copy payment link
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClick();
+                                    setMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm text-textMain hover:bg-surfaceHighlight flex items-center gap-3 transition-colors"
+                            >
+                                <ArrowUpRight className="w-4 h-4 text-textMuted" />
+                                Open invoice
+                            </button>
+                            {onDelete && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete();
+                                        setMenuOpen(false);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete invoice
+                                </button>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Desktop: Action Buttons - Slide In from Right on Hover */}
+            <div className="hidden md:flex absolute right-0 gap-1 translate-x-36 opacity-0 md:group-hover:translate-x-0 md:group-hover:opacity-100 transition-all duration-300 ml-4">
+                <div className="relative group/copy">
+                    <button
+                        className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border hover:bg-surfaceHighlight hover:border-textMuted transition-all"
+                        onClick={(e) => { 
+                            e.stopPropagation(); 
+                            navigator.clipboard.writeText(window.location.origin + '/invoice/' + invoice.id);
+                            if (onCopy) onCopy();
+                        }}
+                        title="Copy payment link"
+                    >
+                        <Copy className="w-4 h-4 text-textMuted" />
+                    </button>
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/copy:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl">
+                        Copy payment link
+                        <div className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-r border-b border-border rotate-45" />
+                    </div>
+                </div>
+                <div className="relative group/open">
+                    <button
+                        className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border hover:bg-surfaceHighlight hover:border-textMuted transition-all"
+                        onClick={(e) => { e.stopPropagation(); onClick(); }}
+                        title="Open invoice"
+                    >
+                        <ArrowUpRight className="w-4 h-4 text-textMuted" />
+                    </button>
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/open:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl">
+                        Open invoice
+                        <div className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-r border-b border-border rotate-45" />
+                    </div>
+                </div>
                 {onDelete && (
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full text-red-500 hover:bg-red-500/10" icon={<Trash2 className="w-4 h-4"/>} onClick={(e) => { e.stopPropagation(); onDelete(); }} />
+                    <button
+                        className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border text-red-500 hover:bg-red-500/10 hover:border-red-500/30 transition-all"
+                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                        title="Delete invoice"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 )}
             </div>
         </div>
@@ -176,7 +301,7 @@ const TIME_RANGES = [
   { id: 'custom', label: 'Custom Range' },
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, isDarkMode, toggleTheme, userProfile, onRefresh, onNavigateAdmin }) => {
+const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onNavigateAdmin }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'reminders' | 'clients' | 'reports' | 'settings' | 'profile'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -245,6 +370,17 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
     const saved = localStorage.getItem('emailNotifications');
     return saved !== 'false';
   });
+  const [currency, setCurrency] = useState<string>('USD');
+  const [invoiceNumberFormat, setInvoiceNumberFormat] = useState<string>('YYMM-seq');
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Update settings when userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      setCurrency(userProfile.currency || 'USD');
+      setInvoiceNumberFormat(userProfile.invoice_number_format || 'YYMM-seq');
+    }
+  }, [userProfile]);
 
   // Export CSV function for reports
   const handleExportCSV = async () => {
@@ -408,6 +544,62 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
   const handleConnectStripe = async () => {
     showToast('info', 'Coming Soon', 'Stripe Connect integration will be available soon!');
+  };
+
+  // Save currency setting
+  const handleSaveCurrency = async (newCurrency: string) => {
+    if (!userProfile?.id) return;
+    
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ currency: newCurrency })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
+
+      // Update local profile
+      if (onRefresh) {
+        await onRefresh();
+      }
+      showToast('success', 'Currency Updated', 'Your default currency has been saved.');
+    } catch (error: any) {
+      console.error('Error updating currency:', error);
+      showToast('error', 'Update Failed', error.message || 'Failed to update currency. Please try again.');
+      // Revert on error
+      setCurrency(userProfile?.currency || 'USD');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Save invoice number format setting
+  const handleSaveInvoiceFormat = async (newFormat: string) => {
+    if (!userProfile?.id) return;
+    
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ invoice_number_format: newFormat })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
+
+      // Update local profile
+      if (onRefresh) {
+        await onRefresh();
+      }
+      showToast('success', 'Format Updated', 'Your invoice number format has been saved.');
+    } catch (error: any) {
+      console.error('Error updating invoice format:', error);
+      showToast('error', 'Update Failed', error.message || 'Failed to update invoice format. Please try again.');
+      // Revert on error
+      setInvoiceNumberFormat(userProfile?.invoice_number_format || 'YYMM-seq');
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   // Reminders State
@@ -859,14 +1051,14 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
         {/* Collapse Toggle Button - Always visible */}
         <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={`absolute -right-3 top-10 w-6 h-6 flex items-center justify-center bg-surface border border-border rounded-full text-textMuted hover:text-[#10b981] hover:border-[#10b981]/50 transition-all duration-300 z-50 shadow-md hover:shadow-lg ${sidebarCollapsed ? 'rotate-180' : ''}`}
+            className={`absolute -right-3 top-10 w-6 h-6 flex items-center justify-center bg-surface border border-border rounded-full text-white hover:text-[#10b981] hover:border-[#10b981]/50 transition-all duration-300 z-50 shadow-md hover:shadow-lg ${sidebarCollapsed ? 'rotate-180' : ''}`}
             title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
             <ChevronLeft size={14} />
         </button>
 
-        <div className={`mb-8 ${sidebarCollapsed ? 'px-0' : 'px-2'}`}>
-            <div className={sidebarCollapsed ? 'flex justify-center' : 'px-4'}>
+        <div className={`mb-8 ${sidebarCollapsed ? 'px-0 flex justify-center' : 'px-2'}`}>
+            <div className={sidebarCollapsed ? 'w-full flex justify-center' : 'px-4'}>
                 <Logo collapsed={sidebarCollapsed} />
             </div>
         </div>
@@ -926,11 +1118,11 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                   onClick={onNavigateAdmin}
                   className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-emerald-500 hover:bg-emerald-500/10 border border-transparent ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
                 >
-                  <span className="shrink-0 transition-colors">
+                  <span className="shrink-0 transition-colors flex items-center justify-center">
                     <Shield className="w-5 h-5" />
                   </span>
                   {!sidebarCollapsed && (
-                    <span className="font-medium truncate text-[14px]">Admin Panel</span>
+                    <span className="font-medium truncate text-[14px] text-white">Admin Panel</span>
                   )}
                 </button>
                 {sidebarCollapsed && (
@@ -946,13 +1138,13 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
              <div className="relative group w-full px-2">
                  <button
                     onClick={() => setFeedbackOpen(true)}
-                    className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-textMuted hover:bg-surfaceHighlight hover:text-textMain border border-transparent ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
+                    className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-white hover:bg-white/10 hover:text-white border border-transparent ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
                  >
-                    <span className="shrink-0 transition-colors">
+                    <span className="shrink-0 transition-colors flex items-center justify-center text-white">
                         <MessageSquarePlus className="w-5 h-5" />
                     </span>
                     {!sidebarCollapsed && (
-                         <span className="font-medium truncate text-[14px]">Feedback</span>
+                         <span className="font-medium truncate text-[14px] text-white">Feedback</span>
                     )}
                  </button>
                  {sidebarCollapsed && (
@@ -967,9 +1159,9 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
             <div className={`pt-4 border-t border-border transition-all duration-300 ${sidebarCollapsed ? 'mx-0' : ''}`}>
                 <button
                     onClick={() => { setActiveTab('profile'); setEditingClient(null); }}
-                    className={`w-full flex items-center gap-3 rounded-xl transition-colors text-left group overflow-hidden ${
+                    className={`w-full flex items-center rounded-xl transition-colors group overflow-hidden ${
                         activeTab === 'profile' ? 'bg-surfaceHighlight' : 'hover:bg-surfaceHighlight'
-                    } ${sidebarCollapsed ? 'p-2 justify-center' : 'px-3 py-3'}`}
+                    } ${sidebarCollapsed ? 'p-2 justify-center' : 'px-3 py-3 gap-3 text-left'}`}
                 >
                     {userProfile?.avatar_url ? (
                         <img 
@@ -978,13 +1170,13 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                             className="w-9 h-9 rounded-full object-cover border border-border shrink-0"
                         />
                     ) : (
-                        <div className="w-9 h-9 rounded-full bg-surfaceHighlight text-textMuted border border-border flex items-center justify-center font-medium text-xs shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-surfaceHighlight text-white border border-border flex items-center justify-center font-medium text-xs shrink-0">
                             {userProfile?.name?.charAt(0)?.toUpperCase() || userProfile?.email?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                     )}
                     <div className={`overflow-hidden flex-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0 ml-0' : 'w-auto opacity-100'}`}>
-                        <div className="text-[14px] font-medium truncate text-textMain">{userProfile?.name || 'User'}</div>
-                        <div className="text-[12px] text-textMuted truncate">{userProfile?.email || ''}</div>
+                        <div className="text-[14px] font-medium truncate text-white">{userProfile?.name || 'User'}</div>
+                        <div className="text-[12px] text-white/70 truncate">{userProfile?.email || ''}</div>
                     </div>
                 </button>
             </div>
@@ -995,7 +1187,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative bg-background">
          
          {/* Mobile Header */}
-         <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-background z-30">
+         <div className="md:hidden flex items-center justify-between p-4 px-[26px] border-b border-border bg-background z-30">
              <Logo />
              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-textMuted">
                  <Menu className="w-6 h-6" />
@@ -1005,7 +1197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
          {/* Mobile Menu Overlay */}
          {mobileMenuOpen && (
              <div className="absolute inset-0 z-40 bg-background p-6 flex flex-col md:hidden animate-in fade-in slide-in-from-top-4 duration-200">
-                 <div className="flex justify-between items-center mb-8">
+                 <div className="flex justify-between items-center mb-8 px-[10px]">
                      <Logo />
                      <button onClick={() => setMobileMenuOpen(false)} className="text-textMuted">
                          <Menu className="w-6 h-6" />
@@ -1019,24 +1211,38 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                     <NavTab active={activeTab === 'reports'} onClick={() => {setActiveTab('reports'); setMobileMenuOpen(false)}} icon={<BarChart3 className="w-5 h-5"/>} label="Reports" />
                     <NavTab active={activeTab === 'settings'} onClick={() => {setActiveTab('settings'); setMobileMenuOpen(false)}} icon={<Settings className="w-5 h-5"/>} label="Settings" />
                  </nav>
-                 <div className="mt-auto pt-8 border-t border-border space-y-4">
-                     <button 
-                        onClick={() => {setActiveTab('profile'); setMobileMenuOpen(false)}}
-                        className="flex items-center gap-3 text-textMuted font-medium w-full"
-                     >
-                        <div className="w-8 h-8 rounded-full bg-white dark:bg-black text-black dark:text-white flex items-center justify-center font-bold text-xs border border-border">JD</div>
-                        <span>John Doe (Profile)</span>
-                     </button>
-                     <button onClick={onLogout} className="text-red-400 font-medium flex items-center gap-3">
-                        <LogOut className="w-4 h-4" /> Sign Out
-                     </button>
-                 </div>
+                  <div className="mt-auto pt-8 border-t border-border space-y-4">
+                      <button 
+                         onClick={() => {setActiveTab('profile'); setMobileMenuOpen(false)}}
+                         className="flex items-center gap-3 text-white font-medium w-full"
+                      >
+                         {userProfile?.avatar_url ? (
+                             <img 
+                                 src={userProfile.avatar_url} 
+                                 alt="Avatar" 
+                                 className="w-10 h-10 rounded-full object-cover border border-border shrink-0"
+                             />
+                         ) : (
+                             <div className="w-10 h-10 rounded-full bg-surfaceHighlight text-white border border-border flex items-center justify-center font-medium text-sm shrink-0">
+                                 {userProfile?.name?.charAt(0)?.toUpperCase() || userProfile?.email?.charAt(0)?.toUpperCase() || 'U'}
+                             </div>
+                         )}
+                         <div className="flex-1 min-w-0 text-left">
+                             <div className="text-sm font-medium truncate">{userProfile?.name || 'User'}</div>
+                             <div className="text-xs text-white/70 truncate">{userProfile?.email || ''}</div>
+                         </div>
+                      </button>
+                      <button onClick={onLogout} className="text-red-400 font-medium flex items-center gap-3 ml-[10px]">
+                         <LogOut className="w-4 h-4" /> Sign Out
+                      </button>
+                  </div>
              </div>
          )}
 
          {/* Top Bar (Desktop) */}
          <header className="hidden md:flex h-20 items-center justify-between px-8 border-b border-border bg-background/50 backdrop-blur-sm sticky top-0 z-10 transition-all">
-            <h2 className="text-[28px] font-medium capitalize tracking-tight text-textMain">{editingClient ? 'Edit Client' : activeTab}</h2>
+            {/* Tab heading - white text */}
+            <h2 className="text-[28px] font-medium capitalize tracking-tight text-white">{editingClient ? 'Edit Client' : activeTab}</h2>
             <div>
                {renderHeaderAction()}
             </div>
@@ -1049,33 +1255,30 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                 <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
                     
                     <div className="mb-8">
-                        <h3 className="text-xl font-medium text-textMuted">At a glance <span className="text-sm font-normal text-textMuted ml-2 opacity-60">
-                            ({timeRange === 'custom' ? 'Custom Range' : TIME_RANGES.find(r => r.id === timeRange)?.label})
-                        </span></h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-medium text-white">
+                                Hello <span className="font-bold">{userProfile?.name || 'there'}</span> 👋
+                            </h3>
+                            <span className="text-sm text-white/70">
+                                ({timeRange === 'custom' ? 'Custom Range' : TIME_RANGES.find(r => r.id === timeRange)?.label})
+                            </span>
+                        </div>
                     </div>
 
                     {/* Stats Row - Linear/Attio inspired */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-surface border border-border rounded-2xl p-6">
-                            <div className="text-textMuted text-[12px] font-medium uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Clock className="w-3.5 h-3.5" /> Total Outstanding
-                            </div>
-                            <div className="text-[32px] font-medium text-textMain tracking-tight">${totalDue.toLocaleString()}</div>
+                        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col">
+                            <div className="text-[32px] font-bold tracking-tight mb-1 border-none" style={{ borderColor: 'transparent', borderStyle: 'none', borderImage: 'none', color: 'rgba(249, 115, 22, 1)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif' }}>${totalDue.toLocaleString()}</div>
+                            <div className="text-textMuted text-xs font-medium">Total outstanding</div>
                         </div>
-                        <div className="bg-surface border border-border rounded-2xl p-6">
-                            <div className="text-textMuted text-[12px] font-medium uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Activity className="w-3.5 h-3.5" /> Overdue Amount
-                            </div>
-                            <div className="text-[32px] font-medium text-red-400 tracking-tight">${totalOverdue.toLocaleString()}</div>
+                        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col">
+                            <div className="text-[32px] font-bold text-red-400 tracking-tight mb-1">${totalOverdue.toLocaleString()}</div>
+                            <div className="text-textMuted text-xs font-medium">Overdue amount</div>
                         </div>
-                        <div className="bg-surface border border-border rounded-2xl p-6 flex items-center justify-between">
-                            <div>
-                                <div className="text-textMuted text-[12px] font-medium uppercase tracking-wider mb-3 flex items-center gap-2">
-                                    <Check className="w-3.5 h-3.5" /> Collected
-                                </div>
-                                <div className="text-[32px] font-medium text-[#10b981] tracking-tight">${totalCollected.toLocaleString()}</div>
-                            </div>
-                            <div className="md:hidden">
+                        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col">
+                            <div className="text-[32px] font-bold text-[#f97316] tracking-tight mb-1 border-none">${totalCollected.toLocaleString()}</div>
+                            <div className="text-textMuted text-xs font-medium">Collected</div>
+                            <div className="md:hidden mt-4">
                                 <Button onClick={onCreate} icon={<Plus className="w-4 h-4"/>} size="sm">New</Button>
                             </div>
                         </div>
@@ -1088,7 +1291,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                              <Button size="sm" variant="ghost" onClick={() => setActiveTab('invoices')}>View All</Button>
                          </div>
 
-                        <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden relative min-h-[200px]">
+                        <div className="bg-surface border border-border rounded-2xl shadow-sm relative min-h-[200px] overflow-hidden">
                             <div className="p-2 space-y-1">
                                 {timeFilteredInvoices.length > 0 ? (
                                 timeFilteredInvoices.slice(0, 5).map(invoice => (
@@ -1096,6 +1299,8 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                         key={invoice.id} 
                                         invoice={invoice} 
                                         onClick={() => onViewClient(invoice.id)}
+                                        onDelete={() => handleDeleteInvoice(invoice)}
+                                        onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')}
                                     />
                                 ))
                                 ) : (
@@ -1140,9 +1345,9 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 pl-2 flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4"/> Requires Action
                                     </h3>
-                                    <div className="bg-surface border border-red-500/30 rounded-2xl overflow-hidden p-2 space-y-1">
+                                    <div className="bg-surface border border-red-500/30 rounded-2xl p-2 space-y-1">
                                         {overdueInvoices.map(inv => (
-                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} />
+                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
                                         ))}
                                     </div>
                                 </div>
@@ -1152,9 +1357,9 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                              {activeInvoices.length > 0 && (
                                 <div className="animate-in slide-in-from-bottom-4 fade-in duration-500">
                                     <h3 className="text-textMuted text-xs font-bold uppercase tracking-wider mb-3 pl-2">Active</h3>
-                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden p-2 space-y-1">
+                                    <div className="bg-surface border border-border rounded-2xl p-2 space-y-1">
                                         {activeInvoices.map(inv => (
-                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} />
+                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
                                         ))}
                                     </div>
                                 </div>
@@ -1164,9 +1369,9 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                              {paidInvoices.length > 0 && (
                                 <div className="animate-in slide-in-from-bottom-6 fade-in duration-700">
                                     <h3 className="text-textMuted text-xs font-bold uppercase tracking-wider mb-3 pl-2">Paid History</h3>
-                                    <div className="bg-surface border border-border rounded-2xl overflow-hidden p-2 space-y-1 opacity-80 hover:opacity-100 transition-opacity">
+                                    <div className="bg-surface border border-border rounded-2xl p-2 space-y-1 opacity-80 hover:opacity-100 transition-opacity">
                                         {paidInvoices.map(inv => (
-                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} />
+                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
                                         ))}
                                     </div>
                                 </div>
@@ -1212,9 +1417,9 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                             </div>
                         </div>
                     ) : (
-                    <div className="flex gap-8 h-full">
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-8 h-full">
                     {/* Left Col: Invoice Selector */}
-                    <div className="w-1/3 bg-surface border border-border rounded-2xl flex flex-col overflow-hidden">
+                    <div className="w-full md:w-1/3 bg-surface border border-border rounded-2xl flex flex-col overflow-hidden">
                         <div className="p-4 border-b border-border">
                             <h3 className="font-bold text-textMuted text-sm uppercase tracking-wider">Active Invoices</h3>
                         </div>
@@ -1252,25 +1457,25 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                     </div>
 
                     {/* Right Col: Configuration */}
-                    <div className="flex-1 flex flex-col space-y-6 overflow-y-auto pr-2 pb-24 custom-scrollbar">
+                    <div className="flex-1 flex flex-col space-y-6 overflow-y-auto md:pr-2 pb-24 custom-scrollbar">
                         {selectedInvoice ? (
                             <>
                                 {/* Master Toggle */}
-                                <div className="bg-surface border border-border rounded-2xl p-6 flex items-center justify-between">
-                                    <div className="flex gap-4 items-center">
-                                        <div className={`p-3 rounded-full ${reminderConfig.enabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-surfaceHighlight text-textMuted'}`}>
-                                            <Bell className="w-6 h-6" />
+                                <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex gap-3 md:gap-4 items-center flex-1 min-w-0">
+                                        <div className={`p-2 md:p-3 rounded-full shrink-0 ${reminderConfig.enabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-surfaceHighlight text-textMuted'}`}>
+                                            <Bell className="w-5 h-5 md:w-6 md:h-6" />
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-lg text-textMain">Automated Nudges</h3>
-                                            <p className="text-sm text-textMuted">Automatically send email reminders when this invoice is outstanding.</p>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-bold text-base md:text-lg text-textMain">Automated Nudges</h3>
+                                            <p className="text-xs md:text-sm text-textMuted">Automatically send email reminders when this invoice is outstanding.</p>
                                         </div>
                                     </div>
                                     <button 
                                         onClick={() => setReminderConfig({...reminderConfig, enabled: !reminderConfig.enabled})}
-                                        className={`w-14 h-8 rounded-full relative transition-colors ${reminderConfig.enabled ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
+                                        className={`w-12 h-7 md:w-14 md:h-8 rounded-full relative transition-colors shrink-0 ${reminderConfig.enabled ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
                                     >
-                                        <div className={`absolute top-1 bottom-1 w-6 bg-white rounded-full shadow transition-all ${reminderConfig.enabled ? 'left-7' : 'left-1'}`} />
+                                        <div className={`absolute top-0.5 bottom-0.5 md:top-1 md:bottom-1 w-5 md:w-6 bg-white rounded-full shadow transition-all ${reminderConfig.enabled ? 'left-6 md:left-7' : 'left-0.5 md:left-1'}`} />
                                     </button>
                                 </div>
                                 {/* Configuration Options */}
@@ -1323,17 +1528,17 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     {/* Time Selection */}
                                     <div className="space-y-3">
                                         <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Send Time</label>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                                             <input
                                                 type="time"
                                                 value={reminderConfig.time}
                                                 onChange={(e) => setReminderConfig({...reminderConfig, time: e.target.value})}
-                                                className="px-4 py-2 bg-background border border-border rounded-lg text-textMain focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+                                                className="w-full sm:w-auto px-4 py-2 bg-background border border-border rounded-lg text-textMain focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                                             />
                                             {getNextReminderTime() && (
-                                                <div className="flex items-center gap-2 text-sm text-textMuted">
-                                                    <Clock className="w-4 h-4" />
-                                                    <span>Next reminder: <span className="text-textMain font-medium">{getNextReminderTime()}</span></span>
+                                                <div className="flex items-center gap-2 text-xs sm:text-sm text-textMuted flex-wrap">
+                                                    <Clock className="w-4 h-4 shrink-0" />
+                                                    <span className="whitespace-nowrap">Next reminder: <span className="text-textMain font-medium">{getNextReminderTime()}</span></span>
                                                 </div>
                                             )}
                                         </div>
@@ -1413,25 +1618,66 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     <Button onClick={handleAddClient} icon={<UserPlus className="w-4 h-4"/>}>Add Your First Client</Button>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 gap-4">
+                                <div className="space-y-4">
+                                    {/* Header Row - Desktop Only */}
+                                    <div className="hidden md:grid grid-cols-12 gap-4 items-center pb-2 border-b border-border">
+                                        <div className="col-span-4 text-xs font-bold text-textMuted uppercase tracking-wider">Name</div>
+                                        <div className="col-span-3 text-xs font-bold text-textMuted uppercase tracking-wider">Email</div>
+                                        <div className="col-span-2 text-xs font-bold text-textMuted uppercase tracking-wider">Phone</div>
+                                        <div className="col-span-1 text-xs font-bold text-textMuted uppercase tracking-wider text-center">Status</div>
+                                        <div className="col-span-2"></div>
+                                    </div>
+                                    {/* Client Rows */}
                                     {clients.map((client) => (
-                                        <div key={client.id} className="bg-surface border border-border p-4 rounded-xl hover:bg-surfaceHighlight transition-colors grid grid-cols-12 gap-4 items-center group">
-                                            <div className="col-span-4 font-bold text-sm text-textMain">{client.name}</div>
-                                            <div className="col-span-3 text-sm text-textMuted">{client.email}</div>
-                                            <div className="col-span-2 text-sm text-textMuted">{client.phone || '-'}</div>
-                                            <div className="col-span-1 flex justify-center"><div className={`w-2 h-2 rounded-full ${client.active ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`} /></div>
-                                            <div className="col-span-2 flex justify-end">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingClient({...client});
-                                                        setOriginalClientData({...client});
-                                                        setClientHasChanges(false);
-                                                        setShowEditClientModal(true);
-                                                    }}
-                                                    className="p-2 text-textMuted hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
+                                        <div key={client.id} className="bg-surface border border-border rounded-xl hover:bg-surfaceHighlight transition-colors group">
+                                            {/* Desktop Layout */}
+                                            <div className="hidden md:grid grid-cols-12 gap-4 items-center p-4">
+                                                <div className="col-span-4 font-bold text-sm text-textMain">{client.name}</div>
+                                                <div className="col-span-3 text-sm text-textMuted truncate">{client.email}</div>
+                                                <div className="col-span-2 text-sm text-textMuted">{client.phone || '-'}</div>
+                                                <div className="col-span-1 flex justify-center"><div className={`w-2 h-2 rounded-full ${client.active ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`} /></div>
+                                                <div className="col-span-2 flex justify-end">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingClient({...client});
+                                                            setOriginalClientData({...client});
+                                                            setClientHasChanges(false);
+                                                            setShowEditClientModal(true);
+                                                        }}
+                                                        className="p-2 text-textMuted hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {/* Mobile Layout */}
+                                            <div className="md:hidden p-4 space-y-3">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-bold text-base text-textMain mb-1">{client.name}</div>
+                                                        <div className="text-sm text-textMuted truncate">{client.email}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${client.active ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`} />
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingClient({...client});
+                                                                setOriginalClientData({...client});
+                                                                setClientHasChanges(false);
+                                                                setShowEditClientModal(true);
+                                                            }}
+                                                            className="p-2 text-textMuted hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {client.phone && (
+                                                    <div className="flex items-center gap-2 text-sm text-textMuted">
+                                                        <Phone className="w-4 h-4 shrink-0" />
+                                                        <span>{client.phone}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -1629,27 +1875,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                     </div>
 
                     <div className="space-y-4">
-                        {/* Theme Toggle */}
-                        <div className="bg-surface border border-border rounded-2xl p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-full ${isDarkMode ? 'bg-zinc-800 text-yellow-400' : 'bg-yellow-100 text-yellow-600'}`}>
-                                        {isDarkMode ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-textMain">Theme</div>
-                                        <div className="text-sm text-textMuted">Switch between day and night mode</div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={toggleTheme}
-                                    className={`w-14 h-8 rounded-full relative transition-colors ${isDarkMode ? 'bg-emerald-500' : 'bg-zinc-300'}`}
-                                >
-                                    <div className={`absolute top-1 bottom-1 w-6 bg-white rounded-full shadow transition-all ${isDarkMode ? 'left-7' : 'left-1'}`} />
-                                </button>
-                            </div>
-                        </div>
-
                         {/* Email Notifications */}
                         <div className="bg-surface border border-border rounded-2xl p-6">
                             <div className="flex items-center justify-between">
@@ -1689,8 +1914,14 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     </div>
                                 </div>
                                 <select
-                                    defaultValue="USD"
-                                    className="bg-background border border-border rounded-lg px-4 py-2 text-textMain focus:outline-none focus:border-emerald-500"
+                                    value={currency}
+                                    onChange={async (e) => {
+                                        const newCurrency = e.target.value;
+                                        setCurrency(newCurrency);
+                                        await handleSaveCurrency(newCurrency);
+                                    }}
+                                    disabled={savingSettings}
+                                    className="bg-background border border-border rounded-lg px-4 py-2 text-textMain focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                                 >
                                     <option value="USD">USD ($)</option>
                                     <option value="EUR">EUR (€)</option>
@@ -1714,8 +1945,14 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     </div>
                                 </div>
                                 <select
-                                    defaultValue="YYMM-seq"
-                                    className="bg-background border border-border rounded-lg px-4 py-2 text-textMain focus:outline-none focus:border-emerald-500"
+                                    value={invoiceNumberFormat}
+                                    onChange={async (e) => {
+                                        const newFormat = e.target.value;
+                                        setInvoiceNumberFormat(newFormat);
+                                        await handleSaveInvoiceFormat(newFormat);
+                                    }}
+                                    disabled={savingSettings}
+                                    className="bg-background border border-border rounded-lg px-4 py-2 text-textMain focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                                 >
                                     <option value="YYMM-seq">YYMM-#### (e.g., 2512-0001)</option>
                                     <option value="YYYY-seq">YYYY-#### (e.g., 2025-0001)</option>
@@ -1872,29 +2109,73 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                            <span>You have unsaved changes</span>
                        </div>
                    )}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <div className="space-y-2">
-                           <label className="text-xs font-bold text-textMuted uppercase">Company Name</label>
-                           <input 
-                               type="text" 
-                               value={editingClient.name} 
-                               onChange={(e) => {
-                                   setEditingClient({...editingClient, name: e.target.value});
-                                   setClientHasChanges(true);
-                               }} 
-                               className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
-                           />
+                   <div className="space-y-6">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="space-y-2">
+                               <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Client Name</label>
+                               <input 
+                                   type="text" 
+                                   value={editingClient.name || ''} 
+                                   onChange={(e) => {
+                                       setEditingClient({...editingClient, name: e.target.value});
+                                       setClientHasChanges(true);
+                                   }} 
+                                   className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
+                                   placeholder="John Doe"
+                               />
+                           </div>
+                           <div className="space-y-2">
+                               <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Company Name</label>
+                               <input 
+                                   type="text" 
+                                   value={editingClient.company || ''} 
+                                   onChange={(e) => {
+                                       setEditingClient({...editingClient, company: e.target.value});
+                                       setClientHasChanges(true);
+                                   }} 
+                                   className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
+                                   placeholder="Acme Corporation"
+                               />
+                           </div>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="space-y-2">
+                               <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Email Address</label>
+                               <input 
+                                   type="email" 
+                                   value={editingClient.email || ''} 
+                                   onChange={(e) => {
+                                       setEditingClient({...editingClient, email: e.target.value});
+                                       setClientHasChanges(true);
+                                   }} 
+                                   className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
+                                   placeholder="billing@acme.com"
+                               />
+                           </div>
+                           <div className="space-y-2">
+                               <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Phone Number</label>
+                               <input 
+                                   type="tel" 
+                                   value={editingClient.phone || ''} 
+                                   onChange={(e) => {
+                                       setEditingClient({...editingClient, phone: e.target.value});
+                                       setClientHasChanges(true);
+                                   }} 
+                                   className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
+                                   placeholder="+1 (555) 123-4567"
+                               />
+                           </div>
                        </div>
                        <div className="space-y-2">
-                           <label className="text-xs font-bold text-textMuted uppercase">Email Address</label>
-                           <input 
-                               type="email" 
-                               value={editingClient.email} 
+                           <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Address</label>
+                           <textarea 
+                               value={editingClient.address || ''} 
                                onChange={(e) => {
-                                   setEditingClient({...editingClient, email: e.target.value});
+                                   setEditingClient({...editingClient, address: e.target.value});
                                    setClientHasChanges(true);
                                }} 
-                               className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none"
+                               className="w-full bg-background border border-border rounded-lg p-3 text-textMain focus:border-emerald-500 focus:outline-none resize-none h-20"
+                               placeholder="123 Business St, Suite 100&#10;San Francisco, CA 94102"
                            />
                        </div>
                    </div>

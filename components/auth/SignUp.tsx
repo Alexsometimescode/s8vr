@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { signUp } from '../../src/lib/auth';
 import { Button, Logo } from '../ui/Shared';
-import { UserPlus, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 
 interface SignUpProps {
   onSuccess: () => void;
   onSwitchToLogin: () => void;
+  onBackToLanding?: () => void;
 }
 
-export const SignUp: React.FC<SignUpProps> = ({ onSuccess, onSwitchToLogin }) => {
+export const SignUp: React.FC<SignUpProps> = ({ onSuccess, onSwitchToLogin, onBackToLanding }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,6 +43,15 @@ export const SignUp: React.FC<SignUpProps> = ({ onSuccess, onSwitchToLogin }) =>
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {onBackToLanding && (
+          <button
+            onClick={onBackToLanding}
+            className="mb-6 flex items-center gap-2 text-textMuted hover:text-textMain transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to home</span>
+          </button>
+        )}
         <div className="text-center mb-8">
           <Logo className="text-3xl mb-4" />
           <h1 className="text-2xl font-bold text-textMain mb-2">Create account</h1>

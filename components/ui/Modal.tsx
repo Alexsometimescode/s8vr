@@ -30,6 +30,7 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
+    // Close if clicking on the backdrop or outer container, but not the modal content
     if (e.target === e.currentTarget) {
       if (onBackdropClick) {
         onBackdropClick();
@@ -39,13 +40,26 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
+  const handleBackdropDivClick = (e: React.MouseEvent) => {
+    // Close when clicking directly on the backdrop div
+    e.stopPropagation();
+    if (onBackdropClick) {
+      onBackdropClick();
+    } else {
+      onClose();
+    }
+  };
+
   return (
     <div 
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
       {/* Backdrop with blur */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200" />
+      <div 
+        className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200" 
+        onClick={handleBackdropDivClick}
+      />
       
       {/* Modal Content */}
       <div 

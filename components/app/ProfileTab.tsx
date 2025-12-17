@@ -367,7 +367,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
             <div>
               <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-2">Stripe Account</label>
               <StripeConnect 
-                userId={userProfile.id}
+                userId={userProfile.id} 
                 userEmail={userProfile.email}
                 onConnected={() => {
                    // Refresh profile to show connected status if needed, though component handles its own state

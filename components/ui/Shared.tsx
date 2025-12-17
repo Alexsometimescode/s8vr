@@ -19,8 +19,8 @@ export const LogoIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-
 );
 
 export const Logo: React.FC<{ className?: string; collapsed?: boolean }> = ({ className, collapsed }) => (
-  <div className={`flex items-center gap-2 font-bold text-xl tracking-tight select-none cursor-pointer group text-textMain ${className} ${collapsed ? 'justify-center' : ''}`}>
-    <div className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90 shrink-0">
+  <div className={`flex items-center font-bold text-xl tracking-tight select-none cursor-pointer group text-white ${collapsed ? 'justify-center w-full' : 'gap-2'} ${className}`}>
+    <div className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90 shrink-0 flex items-center justify-center">
       <LogoIcon className="w-6 h-6 text-current" />
     </div>
     <div className={`overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? 'w-0 opacity-0' : 'w-12 opacity-100'}`}>
@@ -73,16 +73,17 @@ export const Button: React.FC<ButtonProps> = ({
 
 interface NavbarProps {
   onAction: () => void;
+  onRegister?: () => void;
   actionLabel?: string;
   isApp?: boolean;
   onBack?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onAction, actionLabel = "Get Early Access", isApp = false, onBack }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onAction, onRegister, actionLabel = "Login", isApp = false, onBack }) => {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-zinc-900/20 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-2 md:gap-4">
           {onBack && (
             <button onClick={onBack} className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors">
               <ArrowLeft className="w-5 h-5" />
@@ -93,18 +94,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onAction, actionLabel = "Get Ear
         
         {!isApp && (
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-            <a href="#manifesto" className="hover:text-white transition-colors">Manifesto</a>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </div>
         )}
 
-        {actionLabel && (
-          <div className="flex items-center gap-4">
-            <Button onClick={onAction} size="sm" icon={!isApp && <ChevronRight className="w-4 h-4" />}>
-              {actionLabel}
-            </Button>
+        {!isApp && (
+          <div className="flex items-center gap-3">
+            {onRegister && (
+              <button
+                onClick={onRegister}
+                className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 font-semibold text-sm transition-all duration-200 active:scale-95"
+              >
+                <span>Register</span>
+              </button>
+            )}
+            {actionLabel && (
+              <button
+                onClick={onAction}
+                className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-400 font-semibold text-sm transition-all duration-200 active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] group"
+              >
+                <span>{actionLabel}</span>
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-10 blur-xl"></span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -112,13 +127,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onAction, actionLabel = "Get Ear
   );
 };
 
-export const Section: React.FC<{ children: React.ReactNode; className?: string; id?: string }> = ({ children, className = "", id }) => (
-  <section id={id} className={`py-24 px-6 ${className}`}>
+export const Section = React.forwardRef<HTMLElement, { children: React.ReactNode; className?: string; id?: string }>(({ children, className = "", id }, ref) => (
+  <section ref={ref} id={id} className={`py-24 px-6 ${className}`}>
     <div className="max-w-7xl mx-auto">
       {children}
     </div>
   </section>
-);
+));
+Section.displayName = 'Section';
 
 export const Badge: React.FC<{ children: React.ReactNode; color?: 'green' | 'red' | 'yellow' | 'gray' }> = ({ children, color = 'gray' }) => {
   const colors = {

@@ -365,7 +365,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
     fontFamily: 'inter'
   });
   const [showCustomization, setShowCustomization] = useState(false);
-
+  
   const [invoice, setInvoice] = useState<Invoice>({
     id: crypto.randomUUID(),
     invoiceNumber: generateInvoiceNumber(),

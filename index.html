@@ -58,26 +58,9 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-      :root {
-        /* Brand Identity - s8vr */
-        /* Primary Background: Zinc 950 */
-        --background: #09090b;
-        /* Surface: Zinc 900 */
-        --surface: #18181b;
-        /* Surface Highlight: Zinc 800 */
-        --surface-highlight: #27272a;
-        /* Border: Zinc 800 */
-        --border: #27272a;
-        /* Text: Zinc 400 */
-        --text-main: #a1a1aa;
-        /* Text Muted: Zinc 500 */
-        --text-muted: #71717a;
-        /* Accent: Emerald 500 - used sparingly */
-        --accent: #10b981;
-      }
-
-      .dark {
-        /* Dark mode is default - same as root */
+      /* Dark mode - applied when .dark class is on html */
+      html.dark,
+      html.dark body {
         --background: #09090b;
         --surface: #18181b;
         --surface-highlight: #27272a;
@@ -87,8 +70,9 @@
         --accent: #10b981;
       }
 
-      :root:not(.dark) {
-        /* Light mode */
+      /* Light mode - applied when .dark class is NOT on html */
+      html:not(.dark),
+      html:not(.dark) body {
         --background: #ffffff;
         --surface: #f9fafb;
         --surface-highlight: #f3f4f6;

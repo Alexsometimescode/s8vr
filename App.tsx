@@ -6,6 +6,7 @@ import { sendInvoiceEmail } from './src/lib/email';
 import { Login } from './components/auth/Login';
 import { SignUp } from './components/auth/SignUp';
 import Dashboard from './components/app/Dashboard';
+import LandingPage from './components/LandingPage';
 import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import AdminDashboard from './components/app/AdminDashboard';
 import { ClientInvoicePage } from './components/app/ClientInvoicePage';
@@ -56,18 +57,23 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+  const [authView, setAuthView] = useState<'landing' | 'login' | 'signup'>('landing');
   const [view, setView] = useState<ViewState>('dashboard');
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
-  // Initialize theme from localStorage or default to dark
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme !== 'light';
-  });
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [publicInvoiceId, setPublicInvoiceId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Global mouse tracking for background glow effect (landing page only)
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Check for public invoice URL on load (runs immediately, before auth check)
   useEffect(() => {
@@ -202,35 +208,15 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleTheme = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    // Update root and body class for theme
-    const root = document.documentElement;
-    const body = document.body;
-    if (newMode) {
-      root.classList.add('dark');
-      body.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-      body.classList.remove('dark');
-    }
-    // Persist to localStorage
-    localStorage.setItem('theme', newMode ? 'dark' : 'light');
-  };
-
-  // Apply theme on mount and when it changes
+  // Ensure dark mode is always enabled
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
-    if (isDarkMode) {
-      root.classList.add('dark');
-      body.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-      body.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+    root.classList.add('dark');
+    body.classList.add('dark');
+    body.style.backgroundColor = '#09090b';
+    body.style.color = '#a1a1aa';
+  }, []);
 
   const navigate = (newView: ViewState, invoiceId?: string) => {
     if (invoiceId) setActiveInvoiceId(invoiceId);
@@ -313,7 +299,7 @@ const App: React.FC = () => {
   // Public Invoice Page (for clients via email link) - show even when not logged in
   if (view === 'public-invoice' && publicInvoiceId) {
     return (
-      <div className="dark">
+      <div className="dark relative overflow-hidden min-h-screen">
         <ClientInvoicePage invoiceId={publicInvoiceId} />
       </div>
     );
@@ -322,7 +308,7 @@ const App: React.FC = () => {
   // Admin Dashboard View
   if (view === 'admin') {
     return (
-      <div className={isDarkMode ? 'dark' : ''}>
+      <div className="dark relative overflow-hidden min-h-screen">
         <AdminDashboard onBack={() => navigate('dashboard')} />
       </div>
     );
@@ -331,31 +317,59 @@ const App: React.FC = () => {
   // Show loading state with skeleton
   if (loading) {
     return (
-      <div className="dark">
+      <div className="dark relative overflow-hidden min-h-screen">
         <DashboardSkeleton />
       </div>
     );
   }
 
-  // Show auth pages if not logged in
+  // Show landing page or auth pages if not logged in
   if (!user) {
+    if (authView === 'landing') {
+      return (
+        <div className="dark relative overflow-hidden min-h-screen">
+          <div 
+            className="fixed pointer-events-none"
+            style={{
+              left: `${mousePosition.x}px`,
+              top: `${mousePosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+              width: '800px',
+              height: '800px',
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)',
+              borderRadius: '50%',
+              filter: 'blur(100px)',
+              transition: 'all 0.15s ease-out',
+              zIndex: 0,
+            }}
+          />
+          <LandingPage onLogin={() => setAuthView('login')} onRegister={() => setAuthView('signup')} />
+        </div>
+      );
+    }
     if (authView === 'login') {
       return (
-        <Login
-          onSuccess={() => {
-            // Auth state change will handle this
-          }}
-          onSwitchToSignUp={() => setAuthView('signup')}
-        />
+        <div className="dark relative overflow-hidden min-h-screen">
+          <Login
+            onSuccess={() => {
+              // Auth state change will handle this
+            }}
+            onSwitchToSignUp={() => setAuthView('signup')}
+            onBackToLanding={() => setAuthView('landing')}
+          />
+        </div>
       );
     }
     return (
-      <SignUp
-        onSuccess={() => {
-          // Auth state change will handle this
-        }}
-        onSwitchToLogin={() => setAuthView('login')}
-      />
+      <div className="dark relative overflow-hidden min-h-screen">
+        <SignUp
+          onSuccess={() => {
+            // Auth state change will handle this
+          }}
+          onSwitchToLogin={() => setAuthView('login')}
+          onBackToLanding={() => setAuthView('landing')}
+        />
+      </div>
     );
   }
 
@@ -375,7 +389,7 @@ const App: React.FC = () => {
   // Create Invoice View
   if (view === 'create-invoice') {
     return (
-      <div className={isDarkMode ? 'dark' : ''}>
+      <div className="dark relative overflow-hidden min-h-screen">
         <InvoiceBuilder
           onCancel={() => navigate('dashboard')}
           onSave={handleCreateInvoice}
@@ -396,14 +410,12 @@ const App: React.FC = () => {
 
   // Main Dashboard
   return (
-    <div className={`${isDarkMode ? 'dark' : ''} min-h-screen bg-background`}>
+    <div className="dark min-h-screen bg-background relative overflow-hidden">
       <Dashboard
         invoices={invoices}
         onLogout={handleLogout}
         onCreate={() => navigate('create-invoice')}
         onViewClient={handleOpenInvoice}
-        isDarkMode={isDarkMode}
-        toggleTheme={toggleTheme}
         userProfile={userProfile}
         onRefresh={async () => {
           await loadInvoices();

@@ -343,7 +343,7 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
                 <Elements stripe={stripePromise} options={{ 
                     clientSecret, 
                     appearance: { 
-                        theme: 'night',
+                        theme: 'night', 
                         variables: {
                           colorPrimary: '#10b981',
                           colorBackground: '#18181b',
