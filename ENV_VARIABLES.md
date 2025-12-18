@@ -147,6 +147,8 @@ RESEND_API_KEY=re_...
 
 ---
 
-For detailed deployment instructions, see **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)**
+For detailed deployment instructions, see:
+- **[HETZNER_DEPLOYMENT.md](./HETZNER_DEPLOYMENT.md)** - Backend deployment on Hetzner VPS
+- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Frontend deployment on Vercel
 
 
