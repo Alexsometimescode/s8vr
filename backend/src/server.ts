@@ -53,7 +53,8 @@ app.get('/api', (req, res) => {
       api: '/api',
       sendInvoice: 'POST /api/send-invoice',
       stripeConnect: '/api/connect/*',
-      waitlist: 'POST /api/waitlist'
+      waitlist: 'POST /api/waitlist',
+      marketing: 'GET /api/marketing/email-list'
     }
   });
 });
@@ -290,6 +291,17 @@ app.post('/api/payments/create-intent', async (req, res) => {
       clientEmail = clientData?.email || '';
     }
 
+    // Get currency from invoice, fallback to user's default currency, then USD
+    let invoiceCurrency = invoiceData.currency?.toLowerCase() || 'usd';
+    if (!invoiceCurrency || invoiceCurrency === 'usd') {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('currency')
+        .eq('id', invoiceData.user_id)
+        .single();
+      invoiceCurrency = userData?.currency?.toLowerCase() || 'usd';
+    }
+
     const amountInCents = Math.round(Number(invoiceData.amount) * 100);
     const platformFee = Math.round(amountInCents * 0.03); // 3% fee
     const transferAmount = amountInCents - platformFee; // Amount to transfer to connected account
@@ -300,7 +312,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
     // 2. After successful payment, webhook triggers transfer to connected account
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
-      currency: 'usd',
+      currency: invoiceCurrency,
       metadata: {
         invoice_id: invoiceId,
         user_id: invoiceData.user_id,
@@ -638,9 +650,10 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
       if (connectedAccountId && transferAmount && stripe) {
         try {
           // Create transfer to connected account
+          // Use the same currency as the payment intent
           const transfer = await stripe.transfers.create({
             amount: parseInt(transferAmount),
-            currency: 'usd',
+            currency: paymentIntent.currency || 'usd',
             destination: connectedAccountId,
             transfer_group: paymentIntent.id,
             metadata: {
@@ -1334,6 +1347,43 @@ app.post('/api/reminders/process', async (req, res) => {
 // ============================================
 
 // Get all templates
+// Marketing endpoint - Get users who have opted in for email notifications
+app.get('/api/marketing/email-list', async (req, res) => {
+  try {
+    // Query users who have email_notifications enabled
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, email, name, created_at, email_notifications')
+      .eq('email_notifications', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching marketing email list:', error);
+      return res.status(500).json({ error: 'Failed to fetch email list' });
+    }
+
+    // Return list of emails and user info for marketing campaigns
+    const emailList = users?.map(user => ({
+      id: user.id,
+      email: user.email,
+      name: user.name || 'No name',
+      createdAt: user.created_at,
+      optedIn: user.email_notifications
+    })) || [];
+
+    res.json({
+      success: true,
+      count: emailList.length,
+      users: emailList,
+      // Also provide just emails for easy CSV export
+      emails: emailList.map(u => u.email)
+    });
+  } catch (error: any) {
+    console.error('Marketing email list error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch marketing email list' });
+  }
+});
+
 app.get('/api/admin/templates', async (req, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Logo } from '../ui/Shared';
 import { Invoice, ReminderFrequency, ReminderTone } from '../../types';
-import { LogOut, ArrowUpRight, Copy, Check, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, Zap, Clock, Calendar, Sliders, DollarSign, Activity, Trash2, ArrowLeft, AlertCircle, Settings, MessageSquarePlus, Upload, Shield, AlertTriangle, X, Send, Lock, ChevronLeft, LayoutGrid, Users, ChevronDown, Mail, Phone, Globe, User, Loader2, CreditCard, BarChart3, PanelLeftClose, PanelLeft, Sparkles, Bug, MoreVertical } from 'lucide-react';
+import { LogOut, ArrowUpRight, Copy, Check, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, Zap, Clock, Calendar, Sliders, DollarSign, Activity, Trash2, ArrowLeft, AlertCircle, Settings, MessageSquarePlus, Upload, Shield, AlertTriangle, X, Send, Lock, ChevronLeft, ChevronRight, LayoutGrid, Users, ChevronDown, Mail, Phone, Globe, User, Loader2, CreditCard, BarChart3, PanelLeftClose, PanelLeft, Sparkles, Bug, MoreVertical } from 'lucide-react';
 import { InvoicePreviewCard } from './InvoiceBuilder';
 import { fetchClients, createClient, updateClient, deleteClient } from '../../src/lib/clients';
 import { deleteInvoice } from '../../src/lib/invoices';
@@ -33,21 +33,17 @@ const NavTab = ({ active, onClick, icon, label, collapsed }: any) => (
   <div className="relative group px-2">
     <button
       onClick={onClick}
-      className={`relative flex items-center transition-all duration-200 rounded-xl w-full
+      className={`relative flex items-center transition-all duration-200 rounded-xl w-full overflow-hidden
       ${active
-          ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20'
-          : 'text-white hover:bg-white/10 hover:text-white border border-transparent'
+          ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+          : 'text-white hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-xl hover:border-white/20 border border-transparent'
       }
       ${collapsed ? 'justify-center p-3' : 'justify-start px-4 py-3 gap-3'}
       `}
     >
-      <span className={`shrink-0 transition-colors flex items-center justify-center ${active ? 'text-[#10b981]' : 'text-white'}`}>{icon}</span>
+      <span className={`shrink-0 transition-colors flex items-center justify-center relative z-10 ${active ? 'text-emerald-400' : 'text-white'}`}>{icon}</span>
       {!collapsed && (
-        <span className={`font-medium whitespace-nowrap text-[14px] ${active ? 'text-[#10b981]' : 'text-white'}`}>{label}</span>
-      )}
-      {/* Active indicator bar */}
-      {active && !collapsed && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#10b981] rounded-r-full" />
+        <span className={`font-medium whitespace-nowrap text-[14px] relative z-10 ${active ? 'text-emerald-400' : 'text-white'}`}>{label}</span>
       )}
     </button>
     
@@ -101,7 +97,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
   return (
     <div 
       onClick={onClick}
-      className={`group relative flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer ${isActive ? 'bg-surfaceHighlight border-emerald-500/50' : 'bg-surface border-border md:hover:border-textMuted'}`}
+      className={`group relative flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer overflow-hidden mb-2 md:mb-3 last:mb-0 ${isActive ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border-white/10 md:hover:border-white/20 md:hover:bg-gradient-to-br md:hover:from-surface/40 md:hover:to-surface/30'} shadow-md shadow-black/5`}
       style={{ zIndex: menuOpen ? 10000 : 'auto' }}
     >
         <div className="flex items-center gap-4">
@@ -110,7 +106,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
             </div>
             <div>
                 <div className="font-bold text-sm text-textMain">{invoice.clientName}</div>
-                <div className="text-xs text-textMuted">#{invoice.invoiceNumber}</div>
+                <div className="text-xs text-textMuted/70">#{invoice.invoiceNumber}</div>
             </div>
         </div>
 
@@ -202,7 +198,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
             </div>
 
             {/* Desktop: Action Buttons - Slide In from Right on Hover */}
-            <div className="hidden md:flex absolute right-0 gap-1 translate-x-36 opacity-0 md:group-hover:translate-x-0 md:group-hover:opacity-100 transition-all duration-300 ml-4">
+            <div className="hidden md:flex absolute right-0 gap-1 translate-x-36 opacity-0 md:group-hover:translate-x-0 md:group-hover:opacity-100 transition-all duration-300 ml-4 z-10">
                 <div className="relative group/copy">
                     <button
                         className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border hover:bg-surfaceHighlight hover:border-textMuted transition-all"
@@ -215,7 +211,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
                     >
                         <Copy className="w-4 h-4 text-textMuted" />
                     </button>
-                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/copy:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl">
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/copy:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl max-w-[200px]">
                         Copy payment link
                         <div className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-r border-b border-border rotate-45" />
                     </div>
@@ -228,7 +224,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
                     >
                         <ArrowUpRight className="w-4 h-4 text-textMuted" />
                     </button>
-                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/open:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl">
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/open:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl max-w-[200px]">
                         Open invoice
                         <div className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-r border-b border-border rotate-45" />
                     </div>
@@ -366,10 +362,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   const [exporting, setExporting] = useState(false);
 
   // Settings State
-  const [emailNotifications, setEmailNotifications] = useState(() => {
-    const saved = localStorage.getItem('emailNotifications');
-    return saved !== 'false';
-  });
+  const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
   const [currency, setCurrency] = useState<string>('USD');
   const [invoiceNumberFormat, setInvoiceNumberFormat] = useState<string>('YYMM-seq');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -379,6 +372,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
     if (userProfile) {
       setCurrency(userProfile.currency || 'USD');
       setInvoiceNumberFormat(userProfile.invoice_number_format || 'YYMM-seq');
+      setEmailNotifications(userProfile.email_notifications !== false); // Default to true if not set
     }
   }, [userProfile]);
 
@@ -544,6 +538,34 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
   const handleConnectStripe = async () => {
     showToast('info', 'Coming Soon', 'Stripe Connect integration will be available soon!');
+  };
+
+  // Save email notifications setting
+  const handleSaveEmailNotifications = async (newValue: boolean) => {
+    if (!userProfile?.id) return;
+    
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ email_notifications: newValue })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
+
+      // Update local profile
+      if (onRefresh) {
+        await onRefresh();
+      }
+      showToast('success', 'Settings Updated', `Email notifications ${newValue ? 'enabled' : 'disabled'}`);
+    } catch (error: any) {
+      console.error('Error updating email notifications:', error);
+      showToast('error', 'Update Failed', error.message || 'Failed to update email notifications. Please try again.');
+      // Revert on error
+      setEmailNotifications(userProfile?.email_notifications !== false);
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   // Save currency setting
@@ -1045,8 +1067,8 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
     <div className="flex h-screen bg-background text-textMain overflow-hidden font-sans transition-colors duration-300">
       
       {/* Sidebar - Desktop */}
-      <aside 
-        className={`hidden md:flex flex-col border-r border-border bg-surface/50 py-6 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] relative group/sidebar ${sidebarCollapsed ? 'w-20 px-3' : 'w-64 px-6'} z-20`}
+      <aside
+        className={`hidden md:flex flex-col border-r border-white/10 bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl py-6 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] relative group/sidebar ${sidebarCollapsed ? 'w-20 px-3' : 'w-64 px-6'} z-20 shadow-2xl shadow-black/20`}
       >
         {/* Collapse Toggle Button - Always visible */}
         <button
@@ -1138,13 +1160,16 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
              <div className="relative group w-full px-2">
                  <button
                     onClick={() => setFeedbackOpen(true)}
-                    className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-white hover:bg-white/10 hover:text-white border border-transparent ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
+                    className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-white hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-xl hover:border-white/20 border border-transparent shadow-md shadow-black/5 ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
                  >
                     <span className="shrink-0 transition-colors flex items-center justify-center text-white">
                         <MessageSquarePlus className="w-5 h-5" />
                     </span>
                     {!sidebarCollapsed && (
-                         <span className="font-medium truncate text-[14px] text-white">Feedback</span>
+                         <>
+                             <span className="font-medium truncate text-[14px] text-white flex-1">Feedback</span>
+                             <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
+                         </>
                     )}
                  </button>
                  {sidebarCollapsed && (
@@ -1156,12 +1181,14 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
              </div>
 
             {/* Profile Section */}
-            <div className={`pt-4 border-t border-border transition-all duration-300 ${sidebarCollapsed ? 'mx-0' : ''}`}>
+            <div className={`pt-4 border-t border-white/10 transition-all duration-300 ${sidebarCollapsed ? 'mx-0' : ''}`}>
                 <button
                     onClick={() => { setActiveTab('profile'); setEditingClient(null); }}
-                    className={`w-full flex items-center rounded-xl transition-colors group overflow-hidden ${
-                        activeTab === 'profile' ? 'bg-surfaceHighlight' : 'hover:bg-surfaceHighlight'
-                    } ${sidebarCollapsed ? 'p-2 justify-center' : 'px-3 py-3 gap-3 text-left'}`}
+                    className={`w-full flex items-center rounded-xl transition-all duration-200 group overflow-hidden relative ${
+                        activeTab === 'profile' 
+                            ? 'bg-gradient-to-br from-zinc-500/20 to-zinc-500/10 backdrop-blur-xl border border-zinc-500/30 shadow-lg shadow-zinc-500/10' 
+                            : 'hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-xl hover:border-white/20 border border-transparent'
+                    } ${sidebarCollapsed ? 'p-2 justify-center' : 'px-3 py-3 gap-3 text-left'} shadow-md shadow-black/5`}
                 >
                     {userProfile?.avatar_url ? (
                         <img 
@@ -1267,19 +1294,25 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
                     {/* Stats Row - Linear/Attio inspired */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col">
-                            <div className="text-[32px] font-bold tracking-tight mb-1 border-none" style={{ borderColor: 'transparent', borderStyle: 'none', borderImage: 'none', color: 'rgba(249, 115, 22, 1)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif' }}>${totalDue.toLocaleString()}</div>
-                            <div className="text-textMuted text-xs font-medium">Total outstanding</div>
+                        <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl shadow-black/20 hover:border-white/20 transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                            <div className="relative z-10">
+                                <div className="text-[32px] font-bold text-orange-400 tracking-tight mb-1 border-none">${totalDue.toLocaleString()}</div>
+                                <div className="text-textMuted text-xs font-medium">Total outstanding</div>
+                            </div>
                         </div>
-                        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col">
-                            <div className="text-[32px] font-bold text-red-400 tracking-tight mb-1">${totalOverdue.toLocaleString()}</div>
-                            <div className="text-textMuted text-xs font-medium">Overdue amount</div>
+                        <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl shadow-black/20 hover:border-white/20 transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                            <div className="relative z-10">
+                                <div className="text-[32px] font-bold text-red-400 tracking-tight mb-1">${totalOverdue.toLocaleString()}</div>
+                                <div className="text-textMuted text-xs font-medium">Overdue amount</div>
+                            </div>
                         </div>
-                        <div className="bg-surface border border-border rounded-2xl p-6 flex flex-col">
-                            <div className="text-[32px] font-bold text-[#f97316] tracking-tight mb-1 border-none">${totalCollected.toLocaleString()}</div>
-                            <div className="text-textMuted text-xs font-medium">Collected</div>
-                            <div className="md:hidden mt-4">
-                                <Button onClick={onCreate} icon={<Plus className="w-4 h-4"/>} size="sm">New</Button>
+                        <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl shadow-black/20 hover:border-white/20 transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                            <div className="relative z-10">
+                                <div className="text-[32px] font-bold text-emerald-400 tracking-tight mb-1 border-none">${totalCollected.toLocaleString()}</div>
+                                <div className="text-textMuted text-xs font-medium">Collected</div>
+                                <div className="md:hidden mt-4">
+                                    <Button onClick={onCreate} icon={<Plus className="w-4 h-4"/>} size="sm">New</Button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1341,38 +1374,42 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                         <div className="space-y-4">
                              {/* Urgent / Overdue Section */}
                              {overdueInvoices.length > 0 && (
-                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300">
-                                    <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 pl-2 flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4"/> Requires Action
-                                    </h3>
-                                    <div className="bg-surface border border-red-500/30 rounded-2xl p-2 space-y-1">
-                                        {overdueInvoices.map(inv => (
-                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
-                                        ))}
+                                <div className="animate-in slide-in-from-bottom-2 fade-in duration-300 mb-0">
+                                    <h3 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 pl-2 flex items-center gap-2">Requires Action</h3>
+                                    <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-red-500/20 rounded-2xl pt-2 pb-2 px-2 md:pt-3 md:pb-3 md:px-3 space-y-2 md:space-y-3 overflow-hidden shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                                        <div className="relative z-10">
+                                            {overdueInvoices.map(inv => (
+                                                <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                              )}
 
                              {/* Active Section */}
                              {activeInvoices.length > 0 && (
-                                <div className="animate-in slide-in-from-bottom-4 fade-in duration-500">
+                                <div className="animate-in slide-in-from-bottom-4 fade-in duration-500 mb-0">
                                     <h3 className="text-textMuted text-xs font-bold uppercase tracking-wider mb-3 pl-2">Active</h3>
-                                    <div className="bg-surface border border-border rounded-2xl p-2 space-y-1">
-                                        {activeInvoices.map(inv => (
-                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
-                                        ))}
+                                    <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl pt-2 pb-2 px-2 md:pt-3 md:pb-3 md:px-3 space-y-2 md:space-y-3 overflow-hidden shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                                        <div className="relative z-10">
+                                            {activeInvoices.map(inv => (
+                                                <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                              )}
 
                              {/* Paid Section */}
                              {paidInvoices.length > 0 && (
-                                <div className="animate-in slide-in-from-bottom-6 fade-in duration-700">
+                                <div className="animate-in slide-in-from-bottom-6 fade-in duration-700 mb-0">
                                     <h3 className="text-textMuted text-xs font-bold uppercase tracking-wider mb-3 pl-2">Paid History</h3>
-                                    <div className="bg-surface border border-border rounded-2xl p-2 space-y-1 opacity-80 hover:opacity-100 transition-opacity">
-                                        {paidInvoices.map(inv => (
-                                            <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
-                                        ))}
+                                    <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl pt-2 pb-2 px-2 md:pt-3 md:pb-3 md:px-3 space-y-2 md:space-y-3 overflow-hidden shadow-2xl shadow-black/20 opacity-80 hover:opacity-100 hover:border-white/20 transition-all duration-300 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none after:absolute after:inset-0 after:bg-gradient-to-t after:from-black/5 after:to-transparent after:pointer-events-none">
+                                        <div className="relative z-10">
+                                            {paidInvoices.map(inv => (
+                                                <InvoiceListItem key={inv.id} invoice={inv} onClick={() => onViewClient(inv.id)} onDelete={() => handleDeleteInvoice(inv)} onCopy={() => showToast('success', 'Invoice link copied', 'The invoice link has been copied to your clipboard.')} />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                              )}
@@ -1419,11 +1456,11 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                     ) : (
                     <div className="flex flex-col md:flex-row gap-4 md:gap-8 h-full">
                     {/* Left Col: Invoice Selector */}
-                    <div className="w-full md:w-1/3 bg-surface border border-border rounded-2xl flex flex-col overflow-hidden">
-                        <div className="p-4 border-b border-border">
+                    <div className="w-full md:w-1/3 relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl flex flex-col overflow-hidden shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
+                        <div className="relative z-10 p-4 border-b border-white/10">
                             <h3 className="font-bold text-textMuted text-sm uppercase tracking-wider">Active Invoices</h3>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                        <div className="relative z-10 flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
                              {invoices.filter(i => i.status !== 'paid').length === 0 ? (
                                  <div className="text-center py-8 text-textMuted text-sm">
                                      <Bell className="w-8 h-8 mx-auto mb-3 opacity-30" />
@@ -1435,9 +1472,9 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     onClick={() => handleSelectInvoice(invoice)}
                                     className={`p-4 rounded-xl border cursor-pointer transition-all relative ${
                                         selectedInvoiceId === invoice.id 
-                                        ? 'bg-surfaceHighlight border-emerald-500/50' 
-                                        : 'bg-transparent border-transparent hover:bg-surfaceHighlight hover:border-border'
-                                    }`}
+                                        ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl border-emerald-500/30 shadow-lg shadow-emerald-500/10' 
+                                        : 'bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border-white/10 hover:border-white/20 hover:bg-gradient-to-br hover:from-surface/40 hover:to-surface/30'
+                                    } shadow-md shadow-black/5`}
                                  >
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="font-bold text-textMain">{invoice.clientName}</div>
@@ -1461,8 +1498,8 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                         {selectedInvoice ? (
                             <>
                                 {/* Master Toggle */}
-                                <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                    <div className="flex gap-3 md:gap-4 items-center flex-1 min-w-0">
+                                <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                    <div className="relative z-10 flex gap-3 md:gap-4 items-center flex-1 min-w-0">
                                         <div className={`p-2 md:p-3 rounded-full shrink-0 ${reminderConfig.enabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-surfaceHighlight text-textMuted'}`}>
                                             <Bell className="w-5 h-5 md:w-6 md:h-6" />
                                         </div>
@@ -1471,12 +1508,14 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                             <p className="text-xs md:text-sm text-textMuted">Automatically send email reminders when this invoice is outstanding.</p>
                                         </div>
                                     </div>
-                                    <button 
-                                        onClick={() => setReminderConfig({...reminderConfig, enabled: !reminderConfig.enabled})}
-                                        className={`w-12 h-7 md:w-14 md:h-8 rounded-full relative transition-colors shrink-0 ${reminderConfig.enabled ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
-                                    >
-                                        <div className={`absolute top-0.5 bottom-0.5 md:top-1 md:bottom-1 w-5 md:w-6 bg-white rounded-full shadow transition-all ${reminderConfig.enabled ? 'left-6 md:left-7' : 'left-0.5 md:left-1'}`} />
-                                    </button>
+                                    <div className="relative z-10">
+                                        <button 
+                                            onClick={() => setReminderConfig({...reminderConfig, enabled: !reminderConfig.enabled})}
+                                            className={`w-12 h-7 md:w-14 md:h-8 rounded-full relative transition-colors shrink-0 ${reminderConfig.enabled ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
+                                        >
+                                            <div className={`absolute top-0.5 bottom-0.5 md:top-1 md:bottom-1 w-5 md:w-6 bg-white rounded-full shadow transition-all ${reminderConfig.enabled ? 'left-6 md:left-7' : 'left-0.5 md:left-1'}`} />
+                                        </button>
+                                    </div>
                                 </div>
                                 {/* Configuration Options */}
                                 {reminderConfig.enabled && (
@@ -1494,7 +1533,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                                 <button 
                                                     key={opt.id} 
                                                     onClick={() => setReminderConfig({...reminderConfig, freq: opt.id as ReminderFrequency})} 
-                                                    className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden ${reminderConfig.freq === opt.id ? 'bg-surfaceHighlight border-emerald-500/50 ring-1 ring-emerald-500/20' : 'bg-surface border-border hover:border-textMuted'}`}
+                                                    className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden ${reminderConfig.freq === opt.id ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/10' : 'bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border-white/10 hover:border-white/20 hover:bg-gradient-to-br hover:from-surface/40 hover:to-surface/30'} shadow-md shadow-black/5`}
                                                 >
                                                     <div className={`mb-2 ${reminderConfig.freq === opt.id ? 'text-emerald-500' : 'text-textMuted'}`}>{opt.icon}</div>
                                                     <div className={`font-bold text-sm mb-1 ${reminderConfig.freq === opt.id ? 'text-textMain' : 'text-textMuted'}`}>{opt.label}</div>
@@ -1533,7 +1572,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                                 type="time"
                                                 value={reminderConfig.time}
                                                 onChange={(e) => setReminderConfig({...reminderConfig, time: e.target.value})}
-                                                className="w-full sm:w-auto px-4 py-2 bg-background border border-border rounded-lg text-textMain focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+                                                className="w-full sm:w-auto px-4 py-2 bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border border-white/10 rounded-lg text-textMain focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/30 focus:bg-gradient-to-br focus:from-surface/40 focus:to-surface/30 shadow-md shadow-black/5 transition-all"
                                             />
                                             {getNextReminderTime() && (
                                                 <div className="flex items-center gap-2 text-xs sm:text-sm text-textMuted flex-wrap">
@@ -1555,7 +1594,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                                 <button 
                                                     key={tone.id} 
                                                     onClick={() => setReminderConfig({...reminderConfig, tone: tone.id as ReminderTone})} 
-                                                    className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden ${reminderConfig.tone === tone.id ? 'bg-surfaceHighlight border-emerald-500/50 ring-1 ring-emerald-500/20' : 'bg-surface border-border hover:border-textMuted'}`}
+                                                    className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden ${reminderConfig.tone === tone.id ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/10' : 'bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border-white/10 hover:border-white/20 hover:bg-gradient-to-br hover:from-surface/40 hover:to-surface/30'} shadow-md shadow-black/5`}
                                                 >
                                                     <div className={`font-bold text-sm mb-1 ${reminderConfig.tone === tone.id ? 'text-textMain' : 'text-textMuted'}`}>{tone.label}</div>
                                                     <div className={`text-xs ${reminderConfig.tone === tone.id ? 'text-textMuted' : 'text-textMuted/70'}`}>{tone.description}</div>
@@ -1572,20 +1611,22 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     {/* Preview Box */}
                                     <div className="space-y-3">
                                         <label className="text-xs font-bold text-textMuted uppercase tracking-wider">Email Preview</label>
-                                        <div className="bg-surface border border-border rounded-2xl p-6">
-                                            {(() => {
-                                                const preview = getEmailPreview(reminderConfig.tone, selectedInvoice.clientName, selectedInvoice.invoiceNumber);
-                                                return (
-                                                    <>
-                                                        <div className="border-b border-border pb-4 mb-4">
-                                                            <div className="text-xs text-textMuted uppercase tracking-wider mb-1">Subject</div>
-                                                            <div className="text-sm text-textMain font-medium">{preview.subject}</div>
-                                                        </div>
-                                                        <div className="text-xs text-textMuted uppercase tracking-wider mb-2">Body</div>
-                                                        <div className="text-sm text-textMain whitespace-pre-line leading-relaxed">{preview.body}</div>
-                                                    </>
-                                                )
-                                            })()}
+                                        <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                            <div className="relative z-10">
+                                                {(() => {
+                                                    const preview = getEmailPreview(reminderConfig.tone, selectedInvoice.clientName, selectedInvoice.invoiceNumber);
+                                                    return (
+                                                        <>
+                                                            <div className="border-b border-white/10 pb-4 mb-4">
+                                                                <div className="text-xs text-textMuted uppercase tracking-wider mb-1">Subject</div>
+                                                                <div className="text-sm text-textMain font-medium">{preview.subject}</div>
+                                                            </div>
+                                                            <div className="text-xs text-textMuted uppercase tracking-wider mb-2">Body</div>
+                                                            <div className="text-sm text-textMain whitespace-pre-line leading-relaxed">{preview.body}</div>
+                                                        </>
+                                                    )
+                                                })()}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1612,15 +1653,17 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     <Loader2 className="w-6 h-6 animate-spin text-textMuted" />
                                 </div>
                             ) : clients.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-textMuted bg-surface border border-border rounded-2xl">
-                                    <Users className="w-12 h-12 mb-4 opacity-20" />
-                                    <p className="mb-4">No clients yet.</p>
-                                    <Button onClick={handleAddClient} icon={<UserPlus className="w-4 h-4"/>}>Add Your First Client</Button>
+                                <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl py-12 text-textMuted shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                    <div className="relative z-10 flex flex-col items-center justify-center">
+                                        <Users className="w-12 h-12 mb-4 opacity-20" />
+                                        <p className="mb-4">No clients yet.</p>
+                                        <Button onClick={handleAddClient} icon={<UserPlus className="w-4 h-4"/>}>Add Your First Client</Button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {/* Header Row - Desktop Only */}
-                                    <div className="hidden md:grid grid-cols-12 gap-4 items-center pb-2 border-b border-border">
+                                    <div className="hidden md:grid grid-cols-12 gap-4 items-center pb-2 border-b border-white/10">
                                         <div className="col-span-4 text-xs font-bold text-textMuted uppercase tracking-wider">Name</div>
                                         <div className="col-span-3 text-xs font-bold text-textMuted uppercase tracking-wider">Email</div>
                                         <div className="col-span-2 text-xs font-bold text-textMuted uppercase tracking-wider">Phone</div>
@@ -1629,7 +1672,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     </div>
                                     {/* Client Rows */}
                                     {clients.map((client) => (
-                                        <div key={client.id} className="bg-surface border border-border rounded-xl hover:bg-surfaceHighlight transition-colors group">
+                                        <div key={client.id} className="relative bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border border-white/10 rounded-xl hover:border-white/20 hover:bg-gradient-to-br hover:from-surface/40 hover:to-surface/30 transition-all shadow-md shadow-black/5 group">
                                             {/* Desktop Layout */}
                                             <div className="hidden md:grid grid-cols-12 gap-4 items-center p-4">
                                                 <div className="col-span-4 font-bold text-sm text-textMain">{client.name}</div>
@@ -1743,106 +1786,119 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
                         {/* Key Metrics */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Total Revenue</div>
-                                <div className="text-[32px] font-medium text-[#10b981]">
-                                    ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                <div className="relative z-10">
+                                    <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Total Revenue</div>
+                                    <div className="text-[32px] font-medium text-[#10b981]">
+                                        ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'paid').length} paid invoices</div>
                                 </div>
-                                <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'paid').length} paid invoices</div>
                             </div>
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Pending</div>
-                                <div className="text-[32px] font-medium text-yellow-400">
-                                    ${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                <div className="relative z-10">
+                                    <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Pending</div>
+                                    <div className="text-[32px] font-medium text-yellow-400">
+                                        ${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'pending').length} pending</div>
                                 </div>
-                                <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'pending').length} pending</div>
                             </div>
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Overdue</div>
-                                <div className="text-[32px] font-medium text-red-400">
-                                    ${overdueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                <div className="relative z-10">
+                                    <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Overdue</div>
+                                    <div className="text-[32px] font-medium text-red-400">
+                                        ${overdueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'overdue').length} overdue</div>
                                 </div>
-                                <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'overdue').length} overdue</div>
                             </div>
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Avg Invoice</div>
-                                <div className="text-[32px] font-medium text-textMain">
-                                    ${avgInvoiceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                <div className="relative z-10">
+                                    <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Avg Invoice</div>
+                                    <div className="text-[32px] font-medium text-textMain">
+                                        ${avgInvoiceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="text-xs text-textMuted mt-1">{reportInvoices.length} total invoices</div>
                                 </div>
-                                <div className="text-xs text-textMuted mt-1">{reportInvoices.length} total invoices</div>
                             </div>
                         </div>
 
                         {/* Charts Row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Revenue Trend */}
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <h4 className="font-bold text-textMain mb-6">Revenue Trend</h4>
-                                {chartData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <LineChart data={chartData}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                                            <XAxis dataKey="month" stroke="var(--text-muted)" />
-                                            <YAxis stroke="var(--text-muted)" />
-                                            <Tooltip 
-                                                contentStyle={{ 
-                                                    backgroundColor: 'var(--surface)', 
-                                                    border: '1px solid var(--border)',
-                                                    borderRadius: '8px',
-                                                    color: 'var(--text-main)'
-                                                }} 
-                                            />
-                                            <Line 
-                                                type="monotone" 
-                                                dataKey="revenue" 
-                                                stroke="#10B981" 
-                                                strokeWidth={3}
-                                                dot={{ fill: '#10B981', r: 5 }}
-                                                activeDot={{ r: 8 }}
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="h-[250px] flex items-center justify-center text-textMuted">
-                                        No revenue data available
-                                    </div>
-                                )}
+                            <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                <div className="relative z-10">
+                                    <h4 className="font-bold text-textMain mb-6">Revenue Trend</h4>
+                                    {chartData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <LineChart data={chartData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                                <XAxis dataKey="month" stroke="var(--text-muted)" />
+                                                <YAxis stroke="var(--text-muted)" />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        backgroundColor: 'var(--surface)', 
+                                                        border: '1px solid var(--border)',
+                                                        borderRadius: '8px',
+                                                        color: 'var(--text-main)'
+                                                    }} 
+                                                />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="revenue" 
+                                                    stroke="#10B981" 
+                                                    strokeWidth={3}
+                                                    dot={{ fill: '#10B981', r: 5 }}
+                                                    activeDot={{ r: 8 }}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="h-[250px] flex items-center justify-center text-textMuted">
+                                            No revenue data available
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Status Distribution */}
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <h4 className="font-bold text-textMain mb-6">Status Distribution</h4>
-                                {statusData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={250}>
-                                        <PieChart>
-                                            <Pie
-                                                data={statusData}
-                                                cx="50%"
-                                                cy="50%"
-                                                labelLine={false}
-                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                                outerRadius={80}
-                                                fill="#8884d8"
-                                                dataKey="value"
-                                            >
-                                                {statusData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className="h-[250px] flex items-center justify-center text-textMuted">
-                                        No invoice data available
-                                    </div>
-                                )}
+                            <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                                <div className="relative z-10">
+                                    <h4 className="font-bold text-textMain mb-6">Status Distribution</h4>
+                                    {statusData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={statusData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    labelLine={false}
+                                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                    outerRadius={80}
+                                                    fill="#8884d8"
+                                                    dataKey="value"
+                                                >
+                                                    {statusData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div className="h-[250px] flex items-center justify-center text-textMuted">
+                                            No invoice data available
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         {/* Detailed Breakdown */}
-                        <div className="bg-surface border border-border rounded-2xl p-6">
-                            <h4 className="font-bold text-textMain mb-4">Invoice Status Breakdown</h4>
+                        <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none overflow-hidden">
+                            <div className="relative z-10">
+                                <h4 className="font-bold text-textMain mb-4">Invoice Status Breakdown</h4>
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-textMuted">Paid</span>
@@ -1856,9 +1912,10 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     <span className="text-textMuted">Overdue</span>
                                     <span className="font-bold text-red-500">{reportInvoices.filter(i => i.status === 'overdue' || i.status === 'ghosted').length}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-textMuted">Draft</span>
-                                    <span className="font-bold text-textMuted">{reportInvoices.filter(i => i.status === 'draft').length}</span>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-textMuted">Draft</span>
+                                        <span className="font-bold text-textMuted">{reportInvoices.filter(i => i.status === 'draft').length}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1888,13 +1945,13 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         const newValue = !emailNotifications;
                                         setEmailNotifications(newValue);
-                                        localStorage.setItem('emailNotifications', String(newValue));
-                                        showToast('success', 'Settings Updated', `Email notifications ${newValue ? 'enabled' : 'disabled'}`);
+                                        await handleSaveEmailNotifications(newValue);
                                     }}
-                                    className={`w-14 h-8 rounded-full relative transition-colors ${emailNotifications ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
+                                    disabled={savingSettings}
+                                    className={`w-14 h-8 rounded-full relative transition-colors disabled:opacity-50 ${emailNotifications ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
                                 >
                                     <div className={`absolute top-1 bottom-1 w-6 bg-white rounded-full shadow transition-all ${emailNotifications ? 'left-7' : 'left-1'}`} />
                                 </button>

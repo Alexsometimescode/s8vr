@@ -231,8 +231,13 @@ const App: React.FC = () => {
   const handleCreateInvoice = async (newInvoice: Invoice) => {
     if (!user?.id) return;
     try {
+      // Ensure currency is set from userProfile if not in invoice
+      const invoiceWithCurrency = {
+        ...newInvoice,
+        currency: newInvoice.currency || userProfile?.currency || 'USD'
+      };
       // Save invoice to database
-      const savedInvoice = await createInvoice(newInvoice, user.id);
+      const savedInvoice = await createInvoice(invoiceWithCurrency, user.id);
       
       // Determine if user is premium
       const isPremium = userProfile?.plan === 'pro' || userProfile?.plan === 'premium';

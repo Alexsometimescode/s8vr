@@ -50,6 +50,7 @@ export interface Invoice {
   issueDate: string;
   dueDate: string;
   amount: number;
+  currency?: string;
   remindersEnabled: boolean;
   sentAt?: string;
   paidAt?: string;

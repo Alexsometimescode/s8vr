@@ -1,6 +1,64 @@
 import { supabase } from './supabase';
 import { Invoice, InvoiceItem } from '../../types';
 
+// Get next sequential invoice number based on format
+export const getNextInvoiceNumber = async (userId: string, format: string = 'YYMM-seq'): Promise<string> => {
+  const now = new Date();
+  let prefix = '';
+  
+  // Generate prefix based on format
+  if (format === 'YYMM-seq') {
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    prefix = `${year}${month}-`;
+  } else if (format === 'YYYY-seq') {
+    const year = now.getFullYear().toString();
+    prefix = `${year}-`;
+  } else if (format === 'INV-seq') {
+    prefix = 'INV-';
+  } else {
+    // Default to YYMM-seq
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    prefix = `${year}${month}-`;
+  }
+  
+  // Get all invoices for this user that match the prefix
+  const { data: invoices, error } = await supabase
+    .from('invoices')
+    .select('invoice_number')
+    .eq('user_id', userId)
+    .like('invoice_number', `${prefix}%`)
+    .order('invoice_number', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching invoices for number generation:', error);
+    // Fallback to 1 if query fails
+    return `${prefix}0001`;
+  }
+  
+  // Find the highest sequence number
+  let maxSeq = 0;
+  if (invoices && invoices.length > 0) {
+    for (const inv of invoices) {
+      // Extract sequence number from invoice number (e.g., "2512-0001" -> 1)
+      const match = inv.invoice_number.match(/-(\d+)$/);
+      if (match) {
+        const seq = parseInt(match[1], 10);
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+  }
+  
+  // Increment and format with leading zeros
+  const nextSeq = maxSeq + 1;
+  const formattedSeq = nextSeq.toString().padStart(4, '0');
+  
+  return `${prefix}${formattedSeq}`;
+};
+
 // Fetch all invoices for current user
 export const fetchInvoices = async (userId: string): Promise<Invoice[]> => {
   const { data: invoices, error } = await supabase
@@ -30,6 +88,7 @@ export const fetchInvoices = async (userId: string): Promise<Invoice[]> => {
     issueDate: inv.issue_date,
     dueDate: inv.due_date,
     amount: parseFloat(inv.amount),
+    currency: inv.currency || 'USD',
     remindersEnabled: inv.reminders_enabled,
     sentAt: inv.sent_at,
     paidAt: inv.paid_at,
@@ -39,7 +98,7 @@ export const fetchInvoices = async (userId: string): Promise<Invoice[]> => {
 };
 
 // Create new invoice
-export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName: string; clientEmail: string }, userId: string) => {
+export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName: string; clientEmail: string; currency?: string }, userId: string) => {
   let clientId: string | null = null;
 
   // First, find or create the client
@@ -76,6 +135,17 @@ export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName:
     }
   }
 
+  // Get user currency if not provided
+  let invoiceCurrency = invoice.currency;
+  if (!invoiceCurrency) {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('currency')
+      .eq('id', userId)
+      .single();
+    invoiceCurrency = userData?.currency || 'USD';
+  }
+
   // Create invoice
   const { data: invoiceData, error: invoiceError } = await supabase
     .from('invoices')
@@ -89,6 +159,7 @@ export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName:
       amount: invoice.amount || invoice.items.reduce((sum, item) => sum + item.amount, 0),
       reminders_enabled: invoice.remindersEnabled ?? true,
       theme: invoice.theme,
+      currency: invoiceCurrency.toLowerCase(), // Store in lowercase for Stripe compatibility
     })
     .select()
     .single();

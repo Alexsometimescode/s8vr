@@ -88,7 +88,7 @@ export const SignUp: React.FC<SignUpProps> = ({ onSuccess, onSwitchToLogin, onBa
                 {alreadyExists ? (
                   <Clock className="w-8 h-8 text-blue-500" />
                 ) : (
-                  <CheckCircle className="w-8 h-8 text-emerald-500" />
+                <CheckCircle className="w-8 h-8 text-emerald-500" />
                 )}
               </div>
               <h2 className="text-xl font-semibold text-textMain mb-2">

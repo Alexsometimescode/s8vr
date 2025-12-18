@@ -185,14 +185,13 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
     <div className="max-w-4xl mx-auto animate-in fade-in duration-500 space-y-8">
       {/* Header */}
       <div>
-        <h3 className="text-[20px] font-medium text-textMain mb-1">Profile</h3>
         <p className="text-[14px] text-textMuted">Manage your account information</p>
       </div>
 
       {/* Main Profile Card */}
-      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black/20 before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
         {/* Avatar & Identity Section */}
-        <div className="p-8 border-b border-border">
+        <div className="relative z-10 p-8 border-b border-white/10">
           <div className="flex items-start gap-6">
             {/* Avatar */}
             <div className="relative group">
@@ -257,7 +256,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
         </div>
 
         {/* Email Section */}
-        <div className="p-8 border-b border-border">
+        <div className="relative z-10 p-8 border-b border-white/10">
           <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-3">Email Address</label>
           
           {editingEmail ? (
@@ -314,7 +313,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
         </div>
 
         {/* Company Logo Section */}
-        <div className="p-8 border-b border-border">
+        <div className="relative z-10 p-8 border-b border-white/10">
           <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-3">Company Logo</label>
           {/* Hidden file input */}
           <input 
@@ -352,7 +351,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
         </div>
 
         {/* Account Info Section */}
-        <div className="p-8 border-b border-border">
+        <div className="relative z-10 p-8 border-b border-white/10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Account Created */}
             <div>
@@ -379,7 +378,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
         </div>
 
         {/* Save Button */}
-        <div className="p-8 bg-background/50">
+        <div className="relative z-10 p-8 bg-gradient-to-br from-background/10 to-background/5 backdrop-blur-xl">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               {saveMessage ? (

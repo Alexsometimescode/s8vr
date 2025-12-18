@@ -4,6 +4,7 @@ import { Invoice, InvoiceItem, InvoiceTheme, InvoiceCustomization } from '../../
 import { Button, Navbar, Logo } from '../ui/Shared';
 import { Modal, ConfirmModal } from '../ui/Modal';
 import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, LayoutTemplate, Building2, Palette, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText, Lock, Zap, Crown, AlertTriangle, ChevronDown, User, Users, Copy, ArrowUpRight } from 'lucide-react';
+import { getNextInvoiceNumber } from '../../src/lib/invoices';
 
 // SECURITY: Validation Helper
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -15,6 +16,8 @@ interface UserProfile {
   avatar_url?: string;
   logo_url?: string;
   plan?: string;
+  currency?: string;
+  invoice_number_format?: string;
 }
 
 interface ExistingClient {
@@ -348,15 +351,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   // Determine pro status from userProfile (reactive)
   const isProMember = userProfile?.plan === 'pro' || userProfile?.plan === 'premium';
   
-  // Generate sequential invoice number based on timestamp
-  const generateInvoiceNumber = () => {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const seq = now.getTime().toString().slice(-4);
-    return `${year}${month}-${seq}`;
-  };
-  
   // Customization state
   const [customization, setCustomization] = useState<InvoiceCustomization>({
     textColor: '#18181b',
@@ -368,7 +362,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   
   const [invoice, setInvoice] = useState<Invoice>({
     id: crypto.randomUUID(),
-    invoiceNumber: generateInvoiceNumber(),
+    invoiceNumber: '', // Will be set by useEffect
     clientName: '',
     clientEmail: '',
     items: [{ id: '1', description: '', amount: 0 }],
@@ -385,6 +379,29 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
       fontFamily: 'inter'
     }
   });
+
+  // Generate invoice number on mount and when format changes
+  useEffect(() => {
+    const generateInvoiceNum = async () => {
+      if (!userProfile?.id) return;
+      
+      const format = userProfile.invoice_number_format || 'YYMM-seq';
+      try {
+        const nextNumber = await getNextInvoiceNumber(userProfile.id, format);
+        setInvoice(prev => ({ ...prev, invoiceNumber: nextNumber }));
+      } catch (error) {
+        console.error('Error generating invoice number:', error);
+        // Fallback to timestamp-based number
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2);
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const seq = now.getTime().toString().slice(-4);
+        setInvoice(prev => ({ ...prev, invoiceNumber: `${year}${month}-${seq}` }));
+      }
+    };
+    
+    generateInvoiceNum();
+  }, [userProfile?.id, userProfile?.invoice_number_format]);
 
   // Check if invoice is ready to send
   const isReadyToSend = 
@@ -463,6 +480,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
         ...invoice,
         amount: total,
         theme: theme,
+        currency: userProfile?.currency || 'USD',
         logs: [{ id: crypto.randomUUID(), date: new Date().toISOString(), type: 'sent', message: 'Invoice sent to client' }]
       });
     }, 1500);
