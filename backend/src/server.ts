@@ -52,9 +52,77 @@ app.get('/api', (req, res) => {
       health: '/health',
       api: '/api',
       sendInvoice: 'POST /api/send-invoice',
-      stripeConnect: '/api/connect/*'
+      stripeConnect: '/api/connect/*',
+      waitlist: 'POST /api/waitlist'
     }
   });
+});
+
+// Waitlist endpoint - Add email to waitlist
+app.post('/api/waitlist', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+
+    // Check if email already exists in waitlist
+    const { data: existing } = await supabase
+      .from('waitlist')
+      .select('id, email, status')
+      .eq('email', email.toLowerCase().trim())
+      .single();
+
+    if (existing) {
+      return res.json({ 
+        success: true, 
+        message: 'You are already on the waitlist!',
+        alreadyExists: true 
+      });
+    }
+
+    // Add to waitlist
+    const { data, error } = await supabase
+      .from('waitlist')
+      .insert({
+        email: email.toLowerCase().trim(),
+        name: name || null,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Waitlist insert error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to add to waitlist. Please try again.' 
+      });
+    }
+
+    console.log(`✅ Added to waitlist: ${email}`);
+
+    res.json({ 
+      success: true, 
+      message: 'You have been added to the waitlist! We will notify you when beta access is available.',
+      data 
+    });
+
+  } catch (error: any) {
+    console.error('Waitlist error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Internal server error' 
+    });
+  }
 });
 
 // --- STRIPE CONNECT ROUTES ---

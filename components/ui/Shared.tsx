@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onAction, onRegister, actionLabe
                 onClick={onRegister}
                 className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 font-semibold text-sm transition-all duration-200 active:scale-95"
               >
-                <span>Register</span>
+                <span>Join Waitlist</span>
               </button>
             )}
             {actionLabel && (
