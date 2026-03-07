@@ -73,7 +73,7 @@ In the Vercel project settings, go to **Settings → Environment Variables** and
 
 | Variable Name | Description | Example |
 |--------------|-------------|---------|
-| `VITE_SUPABASE_URL` | Your Supabase project URL | `https://mdvpvoiidifdlgjjigzb.supabase.co` |
+| `VITE_SUPABASE_URL` | Your Supabase project URL | `https://YOUR_SUPABASE_PROJECT_ID.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous/public key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (test or live) | `pk_test_...` or `pk_live_...` |
 | `VITE_API_URL` | Your backend API URL (see Part 2) | `https://your-backend.railway.app` or `https://your-backend.vercel.app` |

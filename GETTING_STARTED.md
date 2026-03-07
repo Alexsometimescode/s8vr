@@ -186,7 +186,7 @@ npm run dev
 
 ```env
 # Supabase Configuration
-VITE_SUPABASE_URL=https://mdvpvoiidifdlgjjigzb.supabase.co
+VITE_SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_ID.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Stripe Configuration
@@ -205,8 +205,8 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
 # Supabase
-SUPABASE_URL=https://mdvpvoiidifdlgjjigzb.supabase.co
-VITE_SUPABASE_URL=https://mdvpvoiidifdlgjjigzb.supabase.co
+SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_ID.supabase.co
+VITE_SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # Stripe
@@ -796,7 +796,7 @@ Before deploying to production:
 
 | Resource | Link |
 |----------|------|
-| Supabase Project | https://supabase.com/dashboard/project/mdvpvoiidifdlgjjigzb |
+| Supabase Project | https://supabase.com/dashboard/project/YOUR_SUPABASE_PROJECT_ID |
 | Stripe Dashboard | https://dashboard.stripe.com |
 | Repository | (your repo URL) |
 

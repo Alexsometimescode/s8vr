@@ -24,6 +24,7 @@ backend/.env.local
 !.vscode/extensions.json
 .idea
 .DS_Store
+.cursorrules
 *.suo
 *.ntvs*
 *.njsproj

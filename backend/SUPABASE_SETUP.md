@@ -3,28 +3,28 @@
 ## Project Details
 
 - **Project Name:** s8vr
-- **Project ID:** mdvpvoiidifdlgjjigzb
-- **Project Ref:** mdvpvoiidifdlgjjigzb
+- **Project ID:** YOUR_SUPABASE_PROJECT_ID
+- **Project Ref:** YOUR_SUPABASE_PROJECT_ID
 - **Region:** us-east-1
 - **Status:** ACTIVE_HEALTHY
-- **API URL:** https://mdvpvoiidifdlgjjigzb.supabase.co
+- **API URL:** https://YOUR_SUPABASE_PROJECT_ID.supabase.co
 
 ## Database Connection
 
-**Host:** db.mdvpvoiidifdlgjjigzb.supabase.co  
+**Host:** db.YOUR_SUPABASE_PROJECT_ID.supabase.co  
 **Port:** 5432  
 **Database:** postgres  
 **User:** postgres
 
 ### To Get Your Database Password:
 
-1. Go to: https://supabase.com/dashboard/project/mdvpvoiidifdlgjjigzb/settings/database
+1. Go to: https://supabase.com/dashboard/project/YOUR_SUPABASE_PROJECT_ID/settings/database
 2. Under "Database Password", click "Reset database password" or copy existing password
 3. Use this password in your `DATABASE_URL`
 
 ### Connection String Format:
 ```
-postgresql://postgres:[YOUR-PASSWORD]@db.mdvpvoiidifdlgjjigzb.supabase.co:5432/postgres
+postgresql://postgres:[YOUR-PASSWORD]@db.YOUR_SUPABASE_PROJECT_ID.supabase.co:5432/postgres
 ```
 
 ## API Keys

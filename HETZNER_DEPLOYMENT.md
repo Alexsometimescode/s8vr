@@ -152,7 +152,7 @@ NODE_ENV=production
 FRONTEND_URL=https://your-frontend.vercel.app
 
 # Supabase Configuration
-SUPABASE_URL=https://mdvpvoiidifdlgjjigzb.supabase.co
+SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
 # JWT Authentication (optional)

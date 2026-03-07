@@ -9,7 +9,7 @@ Quick reference for all environment variables needed for s8vr deployment.
 Add these in **Vercel Dashboard → Settings → Environment Variables**
 
 ```env
-VITE_SUPABASE_URL=https://mdvpvoiidifdlgjjigzb.supabase.co
+VITE_SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_ID.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 VITE_STRIPE_PUBLISHABLE_KEY=pk_live_... (production) or pk_test_... (development)
 VITE_API_URL=https://your-backend.railway.app
@@ -18,7 +18,7 @@ VITE_API_URL=https://your-backend.railway.app
 ### Where to get these values:
 
 - **VITE_SUPABASE_URL** & **VITE_SUPABASE_ANON_KEY**: 
-  - Go to: https://supabase.com/dashboard/project/mdvpvoiidifdlgjjigzb/settings/api
+  - Go to: https://supabase.com/dashboard/project/YOUR_SUPABASE_PROJECT_ID/settings/api
   - Copy "Project URL" and "anon public" key
 
 - **VITE_STRIPE_PUBLISHABLE_KEY**:
@@ -39,7 +39,7 @@ Add these in your hosting platform's environment variables section.
 PORT=3001
 NODE_ENV=production
 FRONTEND_URL=https://your-project.vercel.app
-SUPABASE_URL=https://mdvpvoiidifdlgjjigzb.supabase.co
+SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_ID.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 STRIPE_SECRET_KEY=sk_live_... (production) or sk_test_... (development)
 STRIPE_PUBLISHABLE_KEY=pk_live_... (production) or pk_test_... (development)
@@ -61,7 +61,7 @@ RESEND_API_KEY=re_...
   - Used for CORS configuration
 
 - **SUPABASE_URL**: 
-  - Same as frontend: https://supabase.com/dashboard/project/mdvpvoiidifdlgjjigzb/settings/api
+  - Same as frontend: https://supabase.com/dashboard/project/YOUR_SUPABASE_PROJECT_ID/settings/api
   - Copy "Project URL"
 
 - **SUPABASE_SERVICE_ROLE_KEY**: 
