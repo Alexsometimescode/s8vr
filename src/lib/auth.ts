@@ -11,7 +11,12 @@ export interface SignInData {
   password: string;
 }
 
-// Sign up new user
+/**
+ * Registers a new user with Supabase Auth and creates their profile
+ * @param data - Sign up data including email, password, and name
+ * @returns The auth data containing user and session
+ * @throws Error if registration fails
+ */
 export const signUp = async (data: SignUpData) => {
   // Sign up with Supabase Auth including user metadata
   const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -51,7 +56,12 @@ export const signUp = async (data: SignUpData) => {
   return authData;
 };
 
-// Sign in existing user
+/**
+ * Authenticates an existing user with email and password
+ * @param data - Sign in credentials
+ * @returns The auth data containing user and session
+ * @throws Error if authentication fails
+ */
 export const signIn = async (data: SignInData) => {
   const { data: authData, error } = await supabase.auth.signInWithPassword({
     email: data.email,
@@ -62,19 +72,29 @@ export const signIn = async (data: SignInData) => {
   return authData;
 };
 
-// Sign out
+/**
+ * Signs out the current user and clears the session
+ * @throws Error if sign out fails
+ */
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };
 
-// Get current session
+/**
+ * Gets the current authentication session
+ * @returns The current session or null if not authenticated
+ */
 export const getSession = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   return session;
 };
 
-// Listen to auth changes
+/**
+ * Subscribes to authentication state changes
+ * @param callback - Function called when auth state changes
+ * @returns Subscription object with unsubscribe method
+ */
 export const onAuthStateChange = (callback: (user: any) => void) => {
   return supabase.auth.onAuthStateChange((_event, session) => {
     callback(session?.user ?? null);

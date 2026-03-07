@@ -1,10 +1,20 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getReminderEmailTemplate, getInvoiceEmailTemplate, getWelcomeEmailTemplate } from './emailTemplates';
+
+// Extend Express Request to include user info
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +44,79 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ============================================
+// AUTHENTICATION MIDDLEWARE
+// ============================================
+
+/**
+ * Middleware to authenticate JWT token from Authorization header
+ * Verifies Supabase JWT and attaches user info to request
+ */
+const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET not configured');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    // Verify the JWT token
+    const decoded = jwt.verify(token, jwtSecret) as { sub: string; email?: string };
+
+    // Get user from database to verify they exist and get their role
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, role')
+      .eq('id', decoded.sub)
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Attach user info to request
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role || 'user'
+    };
+
+    next();
+  } catch (err: any) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    console.error('Auth middleware error:', err);
+    return res.status(401).json({ error: 'Authentication failed' });
+  }
+};
+
+/**
+ * Middleware to require admin role
+ * Must be used after authenticateToken middleware
+ */
+const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  next();
+};
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -108,8 +191,6 @@ app.post('/api/waitlist', async (req, res) => {
         error: 'Failed to add to waitlist. Please try again.' 
       });
     }
-
-    console.log(`✅ Added to waitlist: ${email}`);
 
     res.json({ 
       success: true, 
@@ -436,7 +517,6 @@ app.post('/api/send-invoice', async (req, res) => {
       });
     }
 
-    console.log('Invoice email sent successfully:', data?.id);
     // Return access token so frontend can store it with the invoice
     res.json({ success: true, id: data?.id, accessToken });
 
@@ -635,13 +715,10 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log(`📩 Webhook received: ${event.type}`);
-
   // Handle the event
   switch (event.type) {
     case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      console.log(`✅ Payment succeeded: ${paymentIntent.id}`);
       
       // Transfer funds to connected account if specified
       const connectedAccountId = paymentIntent.metadata?.connected_account_id;
@@ -661,7 +738,6 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
               invoice_id: paymentIntent.metadata?.invoice_id || '',
             },
           });
-          console.log(`💸 Transfer created: ${transfer.id} - $${(parseInt(transferAmount) / 100).toFixed(2)} to ${connectedAccountId}`);
         } catch (transferError: any) {
           console.error('Transfer failed:', transferError.message);
           // Payment succeeded but transfer failed - log this for manual resolution
@@ -683,8 +759,6 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
       if (error) {
         console.error('Error updating invoice:', error);
       } else if (data) {
-        console.log(`📋 Invoice ${data.id} marked as paid`);
-        
         // Log the payment
         await supabase
           .from('email_logs')
@@ -699,8 +773,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 
     case 'payment_intent.payment_failed': {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      console.log(`❌ Payment failed: ${paymentIntent.id}`);
-      
+
       // Log failure
       const { data } = await supabase
         .from('invoices')
@@ -723,21 +796,18 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
     case 'account.updated': {
       // Handle Connect account updates
       const account = event.data.object as Stripe.Account;
-      console.log(`👤 Account updated: ${account.id}`);
-      
       const newStatus = account.details_submitted && account.charges_enabled ? 'active' : 'pending';
-      
+
       await supabase
         .from('users')
         .update({ stripe_account_status: newStatus })
         .eq('stripe_account_id', account.id);
-      
-      console.log(`📊 Account ${account.id} status: ${newStatus}`);
       break;
     }
 
     default:
-      console.log(`Unhandled event type: ${event.type}`);
+      // Unhandled event type - no action needed
+      break;
   }
 
   res.json({ received: true });
@@ -748,7 +818,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 // ============================================
 
 // Get admin stats
-app.get('/api/admin/stats', async (req, res) => {
+app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -802,7 +872,7 @@ app.get('/api/admin/stats', async (req, res) => {
 });
 
 // Get all users
-app.get('/api/admin/users', async (req, res) => {
+app.get('/api/admin/users', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -824,7 +894,7 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 // Update user plan
-app.put('/api/admin/users/:userId/plan', async (req, res) => {
+app.put('/api/admin/users/:userId/plan', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
     const { plan } = req.body;
@@ -849,7 +919,7 @@ app.put('/api/admin/users/:userId/plan', async (req, res) => {
 });
 
 // Get all feedback
-app.get('/api/admin/feedback', async (req, res) => {
+app.get('/api/admin/feedback', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -889,7 +959,7 @@ app.get('/api/admin/feedback', async (req, res) => {
 });
 
 // Update feedback status
-app.put('/api/admin/feedback/:feedbackId/status', async (req, res) => {
+app.put('/api/admin/feedback/:feedbackId/status', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { feedbackId } = req.params;
     const { status } = req.body;
@@ -914,7 +984,7 @@ app.put('/api/admin/feedback/:feedbackId/status', async (req, res) => {
 });
 
 // Get reminder logs
-app.get('/api/admin/reminder-logs', async (req, res) => {
+app.get('/api/admin/reminder-logs', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -987,7 +1057,7 @@ app.get('/api/admin/reminder-logs', async (req, res) => {
 });
 
 // Get all invoices (admin)
-app.get('/api/admin/invoices', async (req, res) => {
+app.get('/api/admin/invoices', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -1025,7 +1095,7 @@ app.get('/api/admin/invoices', async (req, res) => {
 });
 
 // Update invoice status (admin)
-app.put('/api/admin/invoices/:invoiceId/status', async (req, res) => {
+app.put('/api/admin/invoices/:invoiceId/status', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { invoiceId } = req.params;
     const { status } = req.body;
@@ -1053,7 +1123,7 @@ app.put('/api/admin/invoices/:invoiceId/status', async (req, res) => {
 });
 
 // Delete invoice (admin)
-app.delete('/api/admin/invoices/:invoiceId', async (req, res) => {
+app.delete('/api/admin/invoices/:invoiceId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { invoiceId } = req.params;
 
@@ -1079,7 +1149,7 @@ app.delete('/api/admin/invoices/:invoiceId', async (req, res) => {
 });
 
 // Update user role (admin)
-app.put('/api/admin/users/:userId/role', async (req, res) => {
+app.put('/api/admin/users/:userId/role', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;
@@ -1104,7 +1174,7 @@ app.put('/api/admin/users/:userId/role', async (req, res) => {
 });
 
 // Delete user (admin)
-app.delete('/api/admin/users/:userId', async (req, res) => {
+app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
 
@@ -1127,7 +1197,7 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
 });
 
 // Send password reset email (admin)
-app.post('/api/admin/users/:userId/reset-password', async (req, res) => {
+app.post('/api/admin/users/:userId/reset-password', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { email } = req.body;
 
@@ -1163,17 +1233,6 @@ app.post('/api/reminders/process', async (req, res) => {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
     const supabase = createClient(supabaseUrl!, supabaseKey!);
 
-    console.log('🔔 Processing invoice reminders...');
-
-    // First, get all unpaid invoices to see what's available
-    const { data: allInvoices, error: allError } = await supabase
-      .from('invoices')
-      .select('id, invoice_number, status, reminders_enabled')
-      .in('status', ['pending', 'sent', 'overdue']);
-
-    console.log(`📋 Found ${allInvoices?.length || 0} unpaid invoices total`);
-    console.log(`📋 Invoices with reminders enabled: ${allInvoices?.filter(i => i.reminders_enabled).length || 0}`);
-
     // Get all unpaid invoices with reminders enabled
     const { data: invoices, error } = await supabase
       .from('invoices')
@@ -1192,8 +1251,6 @@ app.post('/api/reminders/process', async (req, res) => {
       console.error('Error fetching invoices for reminders:', error);
       throw error;
     }
-
-    console.log(`📋 Found ${invoices?.length || 0} invoices eligible for reminders`);
 
     const now = new Date();
     let remindersSent = 0;
@@ -1219,7 +1276,6 @@ app.post('/api/reminders/process', async (req, res) => {
         (now.getTime() - lastSent.getTime()) >= (intervalDays * 24 * 60 * 60 * 1000);
 
       if (!shouldSend) {
-        console.log(`⏭️ Skipping invoice ${invoice.invoice_number}: Not due for reminder yet (interval: ${intervalDays} days)`);
         remindersSkipped++;
         continue;
       }
@@ -1234,7 +1290,6 @@ app.post('/api/reminders/process', async (req, res) => {
       const userLogo = (invoice.users as any)?.logo_url;
 
       if (!clientEmail) {
-        console.log(`⏭️ Skipping invoice ${invoice.invoice_number}: No client email`);
         remindersSkipped++;
         continue;
       }
@@ -1282,10 +1337,6 @@ app.post('/api/reminders/process', async (req, res) => {
           if (!emailResponse.ok) {
             throw new Error('Failed to send email');
           }
-
-          console.log(`✅ Reminder sent for invoice ${invoice.invoice_number} to ${clientEmail}`);
-        } else {
-          console.log(`📧 [DEV MODE] Would send reminder for invoice ${invoice.invoice_number} to ${clientEmail}`);
         }
 
         // Update invoice with last reminder sent
@@ -1322,8 +1373,6 @@ app.post('/api/reminders/process', async (req, res) => {
       }
     }
 
-    console.log(`🔔 Reminder processing complete: ${remindersSent} sent, ${remindersSkipped} skipped, ${remindersEligible} were eligible`);
-
     res.json({ 
       success: true, 
       remindersSent, 
@@ -1346,9 +1395,8 @@ app.post('/api/reminders/process', async (req, res) => {
 // TEMPLATES MANAGEMENT
 // ============================================
 
-// Get all templates
-// Marketing endpoint - Get users who have opted in for email notifications
-app.get('/api/marketing/email-list', async (req, res) => {
+// Marketing endpoint - Get users who have opted in for email notifications (admin only)
+app.get('/api/marketing/email-list', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     // Query users who have email_notifications enabled
     const { data: users, error } = await supabase
@@ -1384,7 +1432,7 @@ app.get('/api/marketing/email-list', async (req, res) => {
   }
 });
 
-app.get('/api/admin/templates', async (req, res) => {
+app.get('/api/admin/templates', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -1398,7 +1446,6 @@ app.get('/api/admin/templates', async (req, res) => {
 
     if (error) {
       // If table doesn't exist, return default templates
-      console.log('Templates table not found, returning defaults');
       const defaultTemplates = [
         { id: '1', name: 'Minimal', description: 'Clean and simple design', is_premium: false, is_active: true },
         { id: '2', name: 'Corporate', description: 'Professional business look', is_premium: false, is_active: true },
@@ -1422,7 +1469,7 @@ app.get('/api/admin/templates', async (req, res) => {
 });
 
 // Create template
-app.post('/api/admin/templates', async (req, res) => {
+app.post('/api/admin/templates', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { name, description, is_premium } = req.body;
 
@@ -1447,7 +1494,7 @@ app.post('/api/admin/templates', async (req, res) => {
 });
 
 // Update template
-app.put('/api/admin/templates/:templateId', async (req, res) => {
+app.put('/api/admin/templates/:templateId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { templateId } = req.params;
     const updates = req.body;
@@ -1472,7 +1519,7 @@ app.put('/api/admin/templates/:templateId', async (req, res) => {
 });
 
 // Delete template
-app.delete('/api/admin/templates/:templateId', async (req, res) => {
+app.delete('/api/admin/templates/:templateId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { templateId } = req.params;
 
@@ -1497,7 +1544,7 @@ app.delete('/api/admin/templates/:templateId', async (req, res) => {
 // ============================================
 
 // Ban user
-app.post('/api/admin/users/:userId/ban', async (req, res) => {
+app.post('/api/admin/users/:userId/ban', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
     const { email, reason } = req.body;
@@ -1538,7 +1585,7 @@ app.post('/api/admin/users/:userId/ban', async (req, res) => {
 });
 
 // Unban user
-app.post('/api/admin/users/:userId/unban', async (req, res) => {
+app.post('/api/admin/users/:userId/unban', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
     const { email } = req.body;
@@ -1578,7 +1625,7 @@ app.post('/api/admin/users/:userId/unban', async (req, res) => {
 // ============================================
 
 // Delete reminder log
-app.delete('/api/admin/reminder-logs/:reminderId', async (req, res) => {
+app.delete('/api/admin/reminder-logs/:reminderId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { reminderId } = req.params;
 
@@ -1640,22 +1687,15 @@ app.use((req, res) => {
 });
 
 // Start server with graceful shutdown
-const server = app.listen(PORT, () => {
-  console.log(`🚀 s8vr backend server running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-});
+const server = app.listen(PORT);
 
 // Graceful shutdown - prevents EADDRINUSE on nodemon restart
 const shutdown = () => {
-  console.log('\n🛑 Shutting down server...');
   server.close(() => {
-    console.log('✅ Server closed');
     process.exit(0);
   });
   // Force close after 5 seconds
   setTimeout(() => {
-    console.log('⚠️ Forcing shutdown');
     process.exit(1);
   }, 5000);
 };

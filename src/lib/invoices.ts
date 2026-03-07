@@ -1,7 +1,12 @@
 import { supabase } from './supabase';
 import { Invoice, InvoiceItem } from '../../types';
 
-// Get next sequential invoice number based on format
+/**
+ * Generates the next sequential invoice number based on the user's format preference
+ * @param userId - The user's UUID
+ * @param format - Invoice number format: 'YYMM-seq', 'YYYY-seq', or 'INV-seq'
+ * @returns The next invoice number (e.g., '2501-0001')
+ */
 export const getNextInvoiceNumber = async (userId: string, format: string = 'YYMM-seq'): Promise<string> => {
   const now = new Date();
   let prefix = '';
@@ -59,7 +64,12 @@ export const getNextInvoiceNumber = async (userId: string, format: string = 'YYM
   return `${prefix}${formattedSeq}`;
 };
 
-// Fetch all invoices for current user
+/**
+ * Fetches all invoices for a user with related items and client data
+ * @param userId - The user's UUID
+ * @returns Array of invoices with items and client details
+ * @throws Error if database query fails
+ */
 export const fetchInvoices = async (userId: string): Promise<Invoice[]> => {
   const { data: invoices, error } = await supabase
     .from('invoices')
@@ -97,7 +107,13 @@ export const fetchInvoices = async (userId: string): Promise<Invoice[]> => {
   }));
 };
 
-// Create new invoice
+/**
+ * Creates a new invoice with associated client and line items
+ * @param invoice - Invoice data including client info and line items
+ * @param userId - The user's UUID
+ * @returns The created invoice record
+ * @throws Error if invoice creation fails
+ */
 export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName: string; clientEmail: string; currency?: string }, userId: string) => {
   let clientId: string | null = null;
 
@@ -188,7 +204,12 @@ export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName:
   return invoiceData;
 };
 
-// Update invoice
+/**
+ * Updates an existing invoice with partial data
+ * @param invoiceId - The invoice UUID
+ * @param updates - Partial invoice data to update
+ * @throws Error if update fails
+ */
 export const updateInvoice = async (invoiceId: string, updates: Partial<Invoice & { access_token?: string }>) => {
   const updateData: any = {};
   
@@ -207,7 +228,12 @@ export const updateInvoice = async (invoiceId: string, updates: Partial<Invoice 
   if (error) throw error;
 };
 
-// Update invoice access token
+/**
+ * Sets the access token for public invoice viewing and marks as sent
+ * @param invoiceId - The invoice UUID
+ * @param accessToken - Secure token for public access
+ * @throws Error if update fails
+ */
 export const updateInvoiceAccessToken = async (invoiceId: string, accessToken: string) => {
   const { error } = await supabase
     .from('invoices')
@@ -217,7 +243,11 @@ export const updateInvoiceAccessToken = async (invoiceId: string, accessToken: s
   if (error) throw error;
 };
 
-// Delete invoice
+/**
+ * Deletes an invoice and its associated items
+ * @param invoiceId - The invoice UUID to delete
+ * @throws Error if deletion fails
+ */
 export const deleteInvoice = async (invoiceId: string) => {
   const { error } = await supabase
     .from('invoices')

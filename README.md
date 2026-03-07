@@ -3,6 +3,8 @@
 <div align="center">
   <h3>Recover your lost revenue.</h3>
   <p>A minimal, smart invoicing + reminder tool built for freelancers</p>
+
+  [Live Demo](https://your-demo-url.com) <!-- Replace with your actual demo URL -->
 </div>
 
 ---
@@ -53,27 +55,17 @@
    ```
 
 4. **Set up environment variables:**
-   
-   **Frontend** (`.env`):
-   ```env
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-   VITE_API_URL=http://localhost:3001
+
+   Copy the example files and fill in your values:
+   ```bash
+   cp .env.example .env
+   cp backend/.env.example backend/.env
    ```
-   
-   **Backend** (`backend/.env`):
-   ```env
-   PORT=3001
-   NODE_ENV=development
-   FRONTEND_URL=http://localhost:3000
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-   STRIPE_WEBHOOK_SECRET=your_webhook_secret
-   RESEND_API_KEY=your_resend_api_key
-   ```
+
+   Then edit both `.env` files with your credentials from:
+   - [Supabase Dashboard](https://supabase.com/dashboard) - for database URL and keys
+   - [Stripe Dashboard](https://dashboard.stripe.com/apikeys) - for API keys
+   - [Resend](https://resend.com/api-keys) - for email API key
 
 5. **Set up the database:**
    - Run migrations from `backend/migrations/` in Supabase SQL Editor
@@ -255,13 +247,13 @@ For more detailed troubleshooting, see [GETTING_STARTED.md](./GETTING_STARTED.md
 
 ## 📝 License
 
-ISC
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🤝 Contributing
 
-This is a private project. For questions or issues, please contact the maintainer.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 

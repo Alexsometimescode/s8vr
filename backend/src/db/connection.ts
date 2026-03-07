@@ -9,9 +9,9 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Test database connection
+// Database connection event handlers
 pool.on('connect', () => {
-  console.log('✅ Database connected');
+  // Connection established
 });
 
 pool.on('error', (err) => {
@@ -21,11 +21,8 @@ pool.on('error', (err) => {
 
 // Helper function to execute queries
 export const query = async (text: string, params?: any[]) => {
-  const start = Date.now();
   try {
     const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
     return res;
   } catch (error) {
     console.error('Query error:', error);

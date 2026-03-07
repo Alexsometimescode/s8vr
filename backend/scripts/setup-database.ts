@@ -5,12 +5,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://mdvpvoiidifdlgjjigzb.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseServiceKey) {
-  console.error('❌ SUPABASE_SERVICE_ROLE_KEY not found in .env');
-  console.log('💡 Get it from: https://supabase.com/dashboard/project/mdvpvoiidifdlgjjigzb/settings/api');
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Missing required environment variables.');
+  console.log('💡 Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your .env file.');
+  console.log('💡 Get these from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api');
   process.exit(1);
 }
 
@@ -59,7 +60,7 @@ async function setup() {
   console.log('📋 Please run these migrations in Supabase SQL Editor:\n');
   console.log('1. backend/migrations/002_add_auth_and_plans.sql');
   console.log('2. backend/migrations/004_fix_password_hash.sql\n');
-  console.log('🔗 SQL Editor: https://supabase.com/dashboard/project/mdvpvoiidifdlgjjigzb/sql/new\n');
+  console.log('🔗 SQL Editor: https://supabase.com/dashboard/project/YOUR_PROJECT/sql/new\n');
   
   // Read and display the SQL
   const migration2 = fs.readFileSync(path.join(__dirname, '../migrations/002_add_auth_and_plans.sql'), 'utf-8');

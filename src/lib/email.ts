@@ -1,7 +1,11 @@
-// Email service for sending invoices
+/**
+ * Email service for sending invoices via the backend API
+ * @module email
+ */
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+/** Parameters for sending an invoice email */
 interface SendInvoiceEmailParams {
   to: string;
   clientName: string;
@@ -17,6 +21,11 @@ interface SendInvoiceEmailParams {
   invoiceId: string;
 }
 
+/**
+ * Sends an invoice email to a client via the backend API
+ * @param params - Email parameters including recipient, invoice details, and sender info
+ * @returns Object with success status, email ID, and access token for the invoice
+ */
 export const sendInvoiceEmail = async (params: SendInvoiceEmailParams): Promise<{ success: boolean; id?: string; accessToken?: string; error?: string }> => {
   try {
     const response = await fetch(`${API_URL}/api/send-invoice`, {

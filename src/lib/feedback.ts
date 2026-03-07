@@ -11,7 +11,14 @@ export interface Feedback {
   updated_at: string;
 }
 
-// Submit feedback
+/**
+ * Submits user feedback to the database
+ * @param feedback - Feedback data with type and message
+ * @param userId - Optional user UUID if authenticated
+ * @param userEmail - Optional user email
+ * @returns The created feedback record
+ * @throws Error if submission fails
+ */
 export const submitFeedback = async (
   feedback: { type: Feedback['type']; message: string },
   userId?: string,
@@ -32,7 +39,11 @@ export const submitFeedback = async (
   return data;
 };
 
-// Fetch all feedback (admin only - will need to handle in app code)
+/**
+ * Fetches all feedback records (admin only)
+ * @returns Array of all feedback records
+ * @throws Error if query fails
+ */
 export const fetchAllFeedback = async (): Promise<Feedback[]> => {
   const { data, error } = await supabase
     .from('feedback')
@@ -43,7 +54,12 @@ export const fetchAllFeedback = async (): Promise<Feedback[]> => {
   return data || [];
 };
 
-// Update feedback status (admin only)
+/**
+ * Updates the status of a feedback record (admin only)
+ * @param feedbackId - The feedback UUID
+ * @param status - New status: 'new', 'read', 'resolved', or 'archived'
+ * @throws Error if update fails
+ */
 export const updateFeedbackStatus = async (
   feedbackId: string,
   status: Feedback['status']

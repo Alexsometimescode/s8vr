@@ -105,12 +105,8 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
       }
 
       // Fetch invoice via backend API (bypasses RLS)
-      console.log('Fetching invoice:', `${API_URL}/api/invoice/${invoiceId}?token=${urlToken}`);
       const response = await fetch(`${API_URL}/api/invoice/${invoiceId}?token=${urlToken}`);
-      
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (!response.ok || !data.success) {
         console.error('Fetch failed:', data.error);

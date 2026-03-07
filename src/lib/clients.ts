@@ -14,7 +14,12 @@ export interface Client {
   created_at: string;
 }
 
-// Fetch all clients for current user
+/**
+ * Fetches all clients for a user
+ * @param userId - The user's UUID
+ * @returns Array of client records
+ * @throws Error if database query fails
+ */
 export const fetchClients = async (userId: string): Promise<Client[]> => {
   const { data, error } = await supabase
     .from('clients')
@@ -26,7 +31,13 @@ export const fetchClients = async (userId: string): Promise<Client[]> => {
   return data || [];
 };
 
-// Create new client
+/**
+ * Creates a new client for a user
+ * @param client - Client data (name, email, etc.)
+ * @param userId - The user's UUID
+ * @returns The created client record
+ * @throws Error if creation fails
+ */
 export const createClient = async (client: Omit<Client, 'id' | 'user_id' | 'created_at'>, userId: string) => {
   const { data, error } = await supabase
     .from('clients')
@@ -41,7 +52,12 @@ export const createClient = async (client: Omit<Client, 'id' | 'user_id' | 'crea
   return data;
 };
 
-// Update client
+/**
+ * Updates an existing client with partial data
+ * @param clientId - The client UUID
+ * @param updates - Partial client data to update
+ * @throws Error if update fails
+ */
 export const updateClient = async (clientId: string, updates: Partial<Client>) => {
   const { error } = await supabase
     .from('clients')
@@ -51,7 +67,11 @@ export const updateClient = async (clientId: string, updates: Partial<Client>) =
   if (error) throw error;
 };
 
-// Delete client
+/**
+ * Deletes a client
+ * @param clientId - The client UUID to delete
+ * @throws Error if deletion fails
+ */
 export const deleteClient = async (clientId: string) => {
   const { error } = await supabase
     .from('clients')
