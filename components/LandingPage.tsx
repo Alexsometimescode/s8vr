@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navbar, Section, Button, Badge, LogoIcon } from './ui/Shared';
-import { Check, CheckCircle2, ChevronDown, ChevronUp, Bell, CreditCard, Zap, FileText, Users, BarChart3, Mail, Palette, Shield, TrendingUp, Settings, ArrowRight, ArrowUpRight, FileText as FileIcon, RefreshCw, BookOpen, Share2, Plus, LayoutGrid } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronUp, Bell, CreditCard, Zap, FileText, Users, BarChart3, Mail, Palette, Shield, TrendingUp, Settings, ArrowRight, ArrowUpRight, FileText as FileIcon, RefreshCw, BookOpen, Share2, Plus, LayoutGrid, Copy, CheckCheck } from 'lucide-react';
 import { InvoicePreviewCard } from './app/InvoiceBuilder';
 import { Modal } from './ui/Modal';
 
@@ -189,6 +189,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
           </div>
         </div>
       </Section>
+
+      {/* Install Section */}
+      <InstallTabs />
 
       {/* Features Section - Main Focus */}
       <Section id="features" className="bg-zinc-950/50">
@@ -755,7 +758,7 @@ const FAQItem: React.FC<{ question: string; children: React.ReactNode }> = ({ qu
   const [isOpen, setIsOpen] = React.useState(false);
   return (
     <div className="border border-zinc-800 rounded-2xl bg-zinc-900/20 overflow-hidden">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-6 text-left hover:bg-zinc-900/40 transition-colors"
       >
@@ -768,6 +771,73 @@ const FAQItem: React.FC<{ question: string; children: React.ReactNode }> = ({ qu
         </div>
       )}
     </div>
+  );
+};
+
+const InstallTabs: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'curl' | 'docker' | 'npm'>('curl');
+  const [copied, setCopied] = useState(false);
+
+  const commands = {
+    curl: 'curl -fsSL https://s8vr.app/install.sh | bash',
+    docker: 'docker compose up -d',
+    npm: 'npx create-s8vr@latest',
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(commands[activeTab]);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Section className="py-12">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h3 className="text-2xl font-bold text-white mb-2">Get started in seconds</h3>
+          <p className="text-zinc-400 text-sm">Choose your preferred installation method</p>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          {/* Tabs */}
+          <div className="flex border-b border-zinc-800">
+            {(['curl', 'docker', 'npm'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'text-white bg-zinc-800/50 border-b-2 border-emerald-500'
+                    : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Code Block */}
+          <div className="relative p-4">
+            <pre className="text-sm text-emerald-400 font-mono overflow-x-auto">
+              <code>{commands[activeTab]}</code>
+            </pre>
+
+            {/* Copy Button */}
+            <button
+              onClick={handleCopy}
+              className="absolute top-3 right-3 p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+              title="Copy to clipboard"
+            >
+              {copied ? (
+                <CheckCheck className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Section>
   );
 };
 
