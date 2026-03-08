@@ -1,26 +1,23 @@
 import React, { useState } from 'react';
 import { Navbar, Section, Button, Badge, LogoIcon } from './ui/Shared';
-import { Check, CheckCircle2, ChevronDown, ChevronUp, Bell, CreditCard, Zap, FileText, Users, BarChart3, Mail, Palette, Shield, TrendingUp, Settings, ArrowRight, ArrowUpRight, FileText as FileIcon, RefreshCw, BookOpen, Share2, Plus, LayoutGrid, Copy, CheckCheck } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronUp, Bell, CreditCard, Zap, FileText, Users, BarChart3, Mail, Palette, Shield, TrendingUp, Settings, ArrowRight, ArrowUpRight, FileText as FileIcon, RefreshCw, BookOpen, Share2, Plus, LayoutGrid, Copy, CheckCheck, Github, Server, Code2 } from 'lucide-react';
 import { InvoicePreviewCard } from './app/InvoiceBuilder';
 import { Modal } from './ui/Modal';
 
-interface LandingPageProps {
-  onLogin: () => void;
-  onRegister: () => void;
-}
+const GITHUB_REPO = 'https://github.com/s8vr/s8vr';
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
+const LandingPage: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<number | null>(null);
 
   return (
     <div>
-      <Navbar onAction={onLogin} onRegister={onRegister} />
+      <Navbar githubUrl={GITHUB_REPO} />
       
       {/* Hero Section */}
       <Section className="text-center pt-32 pb-16 relative overflow-hidden -mt-16 pt-48">
         <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-sm font-medium border bg-zinc-800 text-white border-zinc-700">
-          <div className="w-2.5 h-2.5 bg-orange-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(251,146,60,0.8)]"></div>
-          <span>Beta is online</span>
+          <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
+          <span>Open Source • MIT License</span>
         </div>
         <h1 className="mt-8 text-5xl md:text-7xl font-bold tracking-tight text-white mb-6">
           Get paid faster with <br/>
@@ -32,9 +29,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
           Professional invoices, instant Stripe payments, and polite automated follow-ups. Everything you need to get paid, nothing you don't.
         </p>
         
-        <div className="flex items-center justify-center gap-4 mb-16">
-          <Button variant="primary" size="lg" onClick={onLogin} icon={<ArrowRight className="w-5 h-5" />}>
-            Get Started Free
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <Button variant="primary" size="lg" onClick={() => window.open(GITHUB_REPO, '_blank')} icon={<Github className="w-5 h-5" />}>
+            View on GitHub
           </Button>
           <Button variant="outline" size="lg" onClick={() => {
             document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -42,6 +39,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
             See Features
           </Button>
         </div>
+
+        {/* Quick Install */}
+        <HeroInstallTabs />
         
         {/* Hero Visual - Dashboard Preview */}
         <div className="relative mt-24 mx-auto max-w-[1400px]">
@@ -189,9 +189,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
           </div>
         </div>
       </Section>
-
-      {/* Install Section */}
-      <InstallTabs />
 
       {/* Features Section - Main Focus */}
       <Section id="features" className="bg-zinc-950/50">
@@ -510,59 +507,80 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
         </div>
       </Section>
 
-      {/* Pricing */}
-      <Section id="pricing">
+      {/* Self-Hosted Section */}
+      <Section id="deploy">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4 text-white">Simple pricing. No surprises.</h2>
+          <h2 className="text-4xl font-bold mb-4 text-white">Self-hosted. Free forever.</h2>
+          <p className="text-zinc-400 max-w-2xl mx-auto">
+            Run s8vr on your own infrastructure. Your data, your servers, no limits.
+          </p>
         </div>
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Free Tier */}
-          <div className="p-8 rounded-3xl border border-zinc-800 bg-zinc-900/20">
-            <div className="inline-block px-3 py-1 bg-zinc-800 rounded-full text-xs font-medium text-zinc-400 mb-6">Try it free</div>
-            <h3 className="text-2xl font-bold mb-2">Free</h3>
-            <div className="text-4xl font-bold mb-4">$0<span className="text-lg text-zinc-500 font-normal">/month</span></div>
-            <p className="text-zinc-400 mb-8">Perfect to get started</p>
-            <ul className="space-y-4 mb-8">
-              <CheckItem>5 invoices per month</CheckItem>
-              <CheckItem>All core features</CheckItem>
-              <CheckItem>Stripe payments</CheckItem>
-              <CheckItem>Automated reminders</CheckItem>
-              <CheckItem>Client management</CheckItem>
-              <CheckItem>Basic reports</CheckItem>
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Self-Hosted */}
+          <div className="p-8 rounded-3xl border border-zinc-800 bg-zinc-900/20 text-center">
+            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto mb-6">
+              <Server className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Self-Hosted</h3>
+            <p className="text-zinc-400 text-sm mb-6">Deploy on your own server with Docker or bare metal</p>
+            <ul className="space-y-3 text-left mb-8">
+              <CheckItem>Unlimited invoices</CheckItem>
+              <CheckItem>Full data ownership</CheckItem>
+              <CheckItem>No usage limits</CheckItem>
+              <CheckItem>Community support</CheckItem>
             </ul>
-            <Button variant="outline" className="w-full" onClick={onLogin}>Start Free</Button>
+            <Button variant="outline" className="w-full" onClick={() => window.open(GITHUB_REPO, '_blank')}>
+              View Docs
+            </Button>
           </div>
 
-          {/* Pro Tier */}
-          <div className="p-8 rounded-3xl border border-emerald-900/30 bg-zinc-900/40 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-emerald-500 text-black text-xs font-bold px-4 py-1 rounded-bl-xl">Most Popular</div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs font-medium text-emerald-400 mb-6">
-              <Zap className="w-3 h-3" /> Early Access Special
+          {/* Open Source */}
+          <div className="p-8 rounded-3xl border border-emerald-900/30 bg-zinc-900/40 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-emerald-500 text-black text-xs font-bold px-4 py-1 rounded-bl-xl">MIT License</div>
+            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto mb-6">
+              <Code2 className="w-8 h-8" />
             </div>
-            <h3 className="text-2xl font-bold mb-2">Pro</h3>
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-zinc-500 line-through text-xl">~$12~</span>
-              <span className="text-4xl font-bold">$9</span>
-              <span className="text-lg text-zinc-500">/month</span>
-            </div>
-            <p className="text-zinc-500 text-sm mb-4">*for early members</p>
-            <p className="text-zinc-400 mb-8">Unlimited invoicing, unlimited revenue</p>
-            <ul className="space-y-4 mb-8">
-              <CheckItem highlight>Unlimited invoices</CheckItem>
-              <CheckItem highlight>Unlimited automated reminders</CheckItem>
-              <CheckItem highlight>Remove s8vr branding</CheckItem>
-              <CheckItem highlight>Premium invoice templates</CheckItem>
-              <CheckItem highlight>Advanced reports & analytics</CheckItem>
-              <CheckItem highlight>Priority support</CheckItem>
+            <h3 className="text-xl font-bold mb-2">Open Source</h3>
+            <p className="text-zinc-400 text-sm mb-6">Fork, modify, and contribute to the codebase</p>
+            <ul className="space-y-3 text-left mb-8">
+              <CheckItem highlight>Full source code access</CheckItem>
+              <CheckItem highlight>MIT licensed</CheckItem>
+              <CheckItem highlight>Active community</CheckItem>
+              <CheckItem highlight>Contributions welcome</CheckItem>
             </ul>
-            
-            <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-xl p-4 mb-6">
-              <p className="text-xs text-emerald-200">
-                🎁 <span className="font-bold text-white">Early Access Bonus:</span> First 100 members get their first month free + lock in $9/month forever.
-              </p>
-            </div>
+            <Button variant="primary" className="w-full" onClick={() => window.open(GITHUB_REPO, '_blank')} icon={<Github className="w-4 h-4" />}>
+              Star on GitHub
+            </Button>
+          </div>
 
-            <Button variant="primary" className="w-full" onClick={onLogin}>Join Waitlist</Button>
+          {/* Cloud (Coming Soon) */}
+          <div className="p-8 rounded-3xl border border-zinc-800 bg-zinc-900/20 text-center opacity-60">
+            <div className="w-16 h-16 bg-zinc-500/10 rounded-2xl flex items-center justify-center text-zinc-500 mx-auto mb-6">
+              <Zap className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Cloud</h3>
+            <p className="text-zinc-400 text-sm mb-6">Managed hosting, zero maintenance</p>
+            <ul className="space-y-3 text-left mb-8 text-zinc-500">
+              <li className="flex items-start gap-3 text-sm">
+                <div className="mt-0.5 rounded-full p-0.5 text-zinc-600"><Check className="w-3 h-3" /></div>
+                <span>Automatic updates</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <div className="mt-0.5 rounded-full p-0.5 text-zinc-600"><Check className="w-3 h-3" /></div>
+                <span>Managed backups</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <div className="mt-0.5 rounded-full p-0.5 text-zinc-600"><Check className="w-3 h-3" /></div>
+                <span>Priority support</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <div className="mt-0.5 rounded-full p-0.5 text-zinc-600"><Check className="w-3 h-3" /></div>
+                <span>No server management</span>
+              </li>
+            </ul>
+            <Button variant="outline" className="w-full" disabled>
+              Coming Soon
+            </Button>
           </div>
         </div>
       </Section>
@@ -571,20 +589,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
       <Section id="faq">
         <h2 className="text-3xl font-bold text-center mb-12 text-white">Questions?</h2>
         <div className="max-w-2xl mx-auto space-y-4">
-          <FAQItem question="Will automated reminders annoy my clients?">
-            No. Reminders are polite, professional, and spaced appropriately. Clients actually appreciate them - they genuinely forget sometimes.
+          <FAQItem question="Is this really free and open source?">
+            Yes! s8vr is MIT licensed and completely free to self-host. No usage limits, no hidden fees. The full source code is available on GitHub.
           </FAQItem>
-          <FAQItem question="How is this different from other invoice tools?">
-            Most tools are bloated CRMs with features you'll never use. We focus purely on getting you paid with minimal friction—invoices, payments, and reminders.
+          <FAQItem question="How do I self-host s8vr?">
+            You can deploy with Docker, npm, or a simple curl script. Check our GitHub README for detailed installation instructions. Most users are up and running in under 5 minutes.
+          </FAQItem>
+          <FAQItem question="Do I need a Stripe account?">
+            Only if you want to accept online payments. Stripe integration is optional—you can use s8vr purely for invoicing and reminders without it.
           </FAQItem>
           <FAQItem question="Can I customize reminder frequency and tone?">
             Yes! You can set custom intervals, choose from multiple professional tones (friendly, formal, casual), and toggle reminders on or off per invoice.
           </FAQItem>
-          <FAQItem question="Do I need a Stripe account?">
-            Yes, you'll need a Stripe account to receive payments. Setting up Stripe Connect is quick and payments go directly to your account.
+          <FAQItem question="How can I contribute?">
+            We welcome contributions! Check out CONTRIBUTING.md on GitHub for guidelines. You can help with code, documentation, translations, or just report bugs.
           </FAQItem>
-          <FAQItem question="Can I export my data?">
-            Yes! Pro users can export reports and invoice data as CSV files for accounting or record-keeping.
+          <FAQItem question="Will automated reminders annoy my clients?">
+            No. Reminders are polite, professional, and spaced appropriately. Clients actually appreciate them—they genuinely forget sometimes.
           </FAQItem>
         </div>
       </Section>
@@ -695,12 +716,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister }) => {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <LogoIcon className="w-4 h-4" />
-            <span>s8vr Inc. © 2025</span>
+            <span>s8vr © 2025 • MIT License</span>
           </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-zinc-400">X (@s8vrapp)</a>
-            <a href="#" className="hover:text-zinc-400">Privacy</a>
-            <a href="#" className="hover:text-zinc-400">Terms</a>
+          <div className="flex items-center gap-6">
+            <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 flex items-center gap-1.5">
+              <Github className="w-4 h-4" />
+              GitHub
+            </a>
+            <a href={`${GITHUB_REPO}#readme`} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400">Docs</a>
+            <a href={`${GITHUB_REPO}/blob/main/CONTRIBUTING.md`} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400">Contribute</a>
           </div>
         </div>
       </footer>
@@ -774,7 +798,7 @@ const FAQItem: React.FC<{ question: string; children: React.ReactNode }> = ({ qu
   );
 };
 
-const InstallTabs: React.FC = () => {
+const HeroInstallTabs: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'curl' | 'docker' | 'npm'>('curl');
   const [copied, setCopied] = useState(false);
 
@@ -791,53 +815,46 @@ const InstallTabs: React.FC = () => {
   };
 
   return (
-    <Section className="py-12">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h3 className="text-2xl font-bold text-white mb-2">Get started in seconds</h3>
-          <p className="text-zinc-400 text-sm">Choose your preferred installation method</p>
+    <div className="max-w-xl mx-auto mb-16">
+      <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl overflow-hidden backdrop-blur-sm">
+        {/* Tabs */}
+        <div className="flex border-b border-zinc-800">
+          {(['curl', 'docker', 'npm'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? 'text-white bg-zinc-800/50 border-b-2 border-emerald-500'
+                  : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-zinc-800">
-            {(['curl', 'docker', 'npm'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === tab
-                    ? 'text-white bg-zinc-800/50 border-b-2 border-emerald-500'
-                    : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+        {/* Code Block */}
+        <div className="relative px-4 py-3">
+          <pre className="text-sm text-emerald-400 font-mono overflow-x-auto pr-12">
+            <code>{commands[activeTab]}</code>
+          </pre>
 
-          {/* Code Block */}
-          <div className="relative p-4">
-            <pre className="text-sm text-emerald-400 font-mono overflow-x-auto">
-              <code>{commands[activeTab]}</code>
-            </pre>
-
-            {/* Copy Button */}
-            <button
-              onClick={handleCopy}
-              className="absolute top-3 right-3 p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-              title="Copy to clipboard"
-            >
-              {copied ? (
-                <CheckCheck className="w-4 h-4 text-emerald-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </button>
-          </div>
+          {/* Copy Button */}
+          <button
+            onClick={handleCopy}
+            className="absolute top-2 right-2 p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
+            title="Copy to clipboard"
+          >
+            {copied ? (
+              <CheckCheck className="w-4 h-4 text-emerald-500" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </button>
         </div>
       </div>
-    </Section>
+    </div>
   );
 };
 

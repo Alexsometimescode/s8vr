@@ -348,7 +348,7 @@ const App: React.FC = () => {
               zIndex: 0,
             }}
           />
-          <LandingPage onLogin={() => setAuthView('login')} onRegister={() => setAuthView('signup')} />
+          <LandingPage />
         </div>
       );
     }

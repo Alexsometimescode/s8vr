@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ArrowLeft, Github, Star } from 'lucide-react';
 
 export const LogoIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg 
@@ -72,14 +72,17 @@ export const Button: React.FC<ButtonProps> = ({
 };
 
 interface NavbarProps {
-  onAction: () => void;
+  onAction?: () => void;
   onRegister?: () => void;
   actionLabel?: string;
   isApp?: boolean;
   onBack?: () => void;
+  githubUrl?: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onAction, onRegister, actionLabel = "Login", isApp = false, onBack }) => {
+const GITHUB_REPO = 'https://github.com/s8vr/s8vr';
+
+export const Navbar: React.FC<NavbarProps> = ({ isApp = false, onBack, githubUrl = GITHUB_REPO }) => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-zinc-900/20 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
@@ -89,37 +92,39 @@ export const Navbar: React.FC<NavbarProps> = ({ onAction, onRegister, actionLabe
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <Logo className="text-white" /> {/* Force white on landing page usually, but context dependent */}
+          <Logo className="text-white" />
         </div>
-        
+
         {!isApp && (
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#deploy" className="hover:text-white transition-colors">Deploy</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            <a href={`${githubUrl}#readme`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Docs</a>
           </div>
         )}
 
         {!isApp && (
           <div className="flex items-center gap-3">
-            {onRegister && (
-              <button
-                onClick={onRegister}
-                className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 font-semibold text-sm transition-all duration-200 active:scale-95"
-              >
-                <span>Join Waitlist</span>
-              </button>
-            )}
-            {actionLabel && (
-              <button
-                onClick={onAction}
-                className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-400 font-semibold text-sm transition-all duration-200 active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] group"
-              >
-                <span>{actionLabel}</span>
-                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-10 blur-xl"></span>
-              </button>
-            )}
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 font-medium text-sm transition-all duration-200 active:scale-95"
+            >
+              <Star className="w-4 h-4" />
+              <span className="hidden sm:inline">Star</span>
+            </a>
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-400 font-semibold text-sm transition-all duration-200 active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] group"
+            >
+              <Github className="w-4 h-4" />
+              <span>GitHub</span>
+              <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-10 blur-xl"></span>
+            </a>
           </div>
         )}
       </div>
