@@ -80,7 +80,7 @@ interface NavbarProps {
   githubUrl?: string;
 }
 
-const GITHUB_REPO = 'https://github.com/s8vr/s8vr';
+const GITHUB_REPO = 'https://github.com/Alexsometimescode/s8vr';
 
 export const Navbar: React.FC<NavbarProps> = ({ isApp = false, onBack, githubUrl = GITHUB_REPO }) => {
   return (

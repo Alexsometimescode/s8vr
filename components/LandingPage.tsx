@@ -4,7 +4,7 @@ import { Check, CheckCircle2, ChevronDown, ChevronUp, Bell, CreditCard, Zap, Fil
 import { InvoicePreviewCard } from './app/InvoiceBuilder';
 import { Modal } from './ui/Modal';
 
-const GITHUB_REPO = 'https://github.com/s8vr/s8vr';
+const GITHUB_REPO = 'https://github.com/Alexsometimescode/s8vr';
 
 const LandingPage: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<number | null>(null);
