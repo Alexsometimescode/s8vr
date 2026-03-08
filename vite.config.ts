@@ -12,10 +12,6 @@ export default defineConfig(({ mode }) => {
       // Handle SPA routing - redirect all routes to index.html
       appType: 'spa',
       plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
