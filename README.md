@@ -4,7 +4,7 @@
   <h3>Recover your lost revenue.</h3>
   <p>A minimal, smart invoicing + reminder tool built for freelancers</p>
 
-  [Live Demo](https://your-demo-url.com) <!-- Replace with your actual demo URL -->
+  [Live Demo](https://s8vr.app)
 </div>
 
 ---
@@ -38,8 +38,8 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Alexsometimescode/s8vr-App.git
-   cd s8vr-App
+   git clone https://github.com/Alexsometimescode/s8vr.git
+   cd s8vr
    ```
 
 2. **Install frontend dependencies:**

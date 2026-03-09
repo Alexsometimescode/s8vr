@@ -1,0 +1,22 @@
+{
+  "name": "create-s8vr",
+  "version": "1.1.0",
+  "description": "Interactive terminal installer for s8vr — self-hosted invoicing",
+  "keywords": ["s8vr", "invoicing", "self-hosted", "freelancer"],
+  "homepage": "https://s8vr.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alexsometimescode/s8vr.git"
+  },
+  "license": "MIT",
+  "main": "./bin/create-s8vr.js",
+  "bin": {
+    "create-s8vr": "./bin/create-s8vr.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/"
+  ]
+}

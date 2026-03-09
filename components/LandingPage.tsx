@@ -804,7 +804,7 @@ const HeroInstallTabs: React.FC = () => {
 
   const commands = {
     curl: 'curl -fsSL https://s8vr.app/install.sh | bash',
-    docker: 'docker compose up -d',
+    docker: 'curl -fsSL https://s8vr.app/docker-install.sh | bash',
     npm: 'npx create-s8vr@latest',
   };
 

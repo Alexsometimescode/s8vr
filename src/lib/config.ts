@@ -34,10 +34,13 @@ export const getAppConfig = (): AppConfig => {
 };
 
 /**
- * Check if setup wizard should be shown
+ * Check if setup wizard should be shown.
+ * Only shows on a fresh self-hosted install where Supabase is not yet configured.
  */
 export const shouldShowSetupWizard = (): boolean => {
   const config = getAppConfig();
+  // If Supabase is already configured, the app is set up — skip the wizard
+  if (config.hasSupabase) return false;
   return !config.setupComplete;
 };
 
