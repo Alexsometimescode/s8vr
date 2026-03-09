@@ -3,6 +3,7 @@ import { onAuthStateChange, getSession, signOut } from './src/lib/auth';
 import { fetchInvoices, createInvoice, updateInvoice, updateInvoiceAccessToken } from './src/lib/invoices';
 import { fetchClients, Client } from './src/lib/clients';
 import { sendInvoiceEmail } from './src/lib/email';
+import { shouldShowSetupWizard } from './src/lib/config';
 import { Login } from './components/auth/Login';
 import { SignUp } from './components/auth/SignUp';
 import Dashboard from './components/app/Dashboard';
@@ -10,6 +11,7 @@ import LandingPage from './components/LandingPage';
 import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import AdminDashboard from './components/app/AdminDashboard';
 import { ClientInvoicePage } from './components/app/ClientInvoicePage';
+import { SetupWizard } from './components/setup';
 import { ViewState, Invoice } from './types';
 import { supabase } from './src/lib/supabase';
 import { DashboardSkeleton } from './components/ui/Skeleton';
@@ -65,6 +67,7 @@ const App: React.FC = () => {
   const [publicInvoiceId, setPublicInvoiceId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showSetup, setShowSetup] = useState(() => shouldShowSetupWizard());
 
   // Global mouse tracking for background glow effect (landing page only)
   useEffect(() => {
@@ -300,6 +303,20 @@ const App: React.FC = () => {
       console.error('Error signing out:', error);
     }
   };
+
+  // Setup Wizard - show if app is not configured
+  if (showSetup) {
+    return (
+      <div className="dark relative overflow-hidden min-h-screen">
+        <SetupWizard
+          onComplete={() => {
+            // Reload the page to apply new configuration
+            window.location.reload();
+          }}
+        />
+      </div>
+    );
+  }
 
   // Public Invoice Page (for clients via email link) - show even when not logged in
   if (view === 'public-invoice' && publicInvoiceId) {

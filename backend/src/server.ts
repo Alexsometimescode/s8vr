@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getReminderEmailTemplate, getInvoiceEmailTemplate, getWelcomeEmailTemplate } from './emailTemplates';
+import setupRoutes from './routes/setup';
 
 // Extend Express Request to include user info
 interface AuthenticatedRequest extends Request {
@@ -129,11 +130,12 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.get('/api', (req, res) => {
-  res.json({ 
+  res.json({
     message: 's8vr API v1',
     endpoints: {
       health: '/health',
       api: '/api',
+      setup: '/api/setup/*',
       sendInvoice: 'POST /api/send-invoice',
       stripeConnect: '/api/connect/*',
       waitlist: 'POST /api/waitlist',
@@ -141,6 +143,9 @@ app.get('/api', (req, res) => {
     }
   });
 });
+
+// Setup routes (no auth required for initial setup)
+app.use('/api/setup', setupRoutes);
 
 // Waitlist endpoint - Add email to waitlist
 app.post('/api/waitlist', async (req, res) => {
