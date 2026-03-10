@@ -84,7 +84,7 @@ const GITHUB_REPO = 'https://github.com/Alexsometimescode/s8vr';
 
 export const Navbar: React.FC<NavbarProps> = ({ isApp = false, onBack, githubUrl = GITHUB_REPO }) => {
   return (
-    <nav className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-4 h-20">
       <div className="relative flex items-center justify-between px-4 md:px-5 h-14 w-full max-w-4xl bg-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-full">
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {onBack && (
@@ -110,9 +110,9 @@ export const Navbar: React.FC<NavbarProps> = ({ isApp = false, onBack, githubUrl
               href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="relative inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 font-medium text-sm transition-all duration-200 active:scale-95"
+              className="group relative inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 font-medium text-sm transition-all duration-200 active:scale-95"
             >
-              <Star className="w-4 h-4" />
+              <Star className="w-4 h-4 transition-all duration-200 group-hover:fill-yellow-400 group-hover:text-yellow-400" />
               <span className="hidden sm:inline">Star</span>
             </a>
             <a

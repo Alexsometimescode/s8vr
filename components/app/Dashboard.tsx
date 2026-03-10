@@ -25,6 +25,7 @@ interface DashboardProps {
   userProfile?: any;
   onRefresh?: () => void;
   onNavigateAdmin?: () => void;
+  onOpenSetup?: () => void;
 }
 
 // Internal Components
@@ -297,7 +298,7 @@ const TIME_RANGES = [
   { id: 'custom', label: 'Custom Range' },
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onNavigateAdmin }) => {
+const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onNavigateAdmin, onOpenSetup }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'reminders' | 'clients' | 'reports' | 'settings' | 'profile'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2015,6 +2016,54 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     <option value="YYYY-seq">YYYY-#### (e.g., 2025-0001)</option>
                                     <option value="INV-seq">INV-#### (e.g., INV-0001)</option>
                                 </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* s8vr Configuration */}
+                    <div>
+                        <h3 className="text-[16px] font-medium text-textMain mb-4">s8vr Configuration</h3>
+                        <div className="space-y-4">
+                            {/* Config Editor */}
+                            <div className="bg-surface border border-border rounded-2xl p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 rounded-full bg-zinc-500/10 text-zinc-400">
+                                            <Sliders className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-textMain">Setup & Configuration</div>
+                                            <div className="text-sm text-textMuted">Edit Supabase, Stripe, and Resend credentials</div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={onOpenSetup}
+                                        className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-textMain text-sm font-medium transition-colors border border-border"
+                                    >
+                                        Open Config
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Restart App */}
+                            <div className="bg-surface border border-border rounded-2xl p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 rounded-full bg-amber-500/10 text-amber-500">
+                                            <Activity className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-textMain">Restart App</div>
+                                            <div className="text-sm text-textMuted">Reload to apply config changes or recover from errors</div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-sm font-medium transition-colors border border-amber-500/20"
+                                    >
+                                        Restart
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

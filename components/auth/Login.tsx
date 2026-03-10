@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { signIn } from '../../src/lib/auth';
 import { Button, Logo } from '../ui/Shared';
-import { LogIn, Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, Settings } from 'lucide-react';
 
 interface LoginProps {
   onSuccess: () => void;
   onSwitchToSignUp: () => void;
   onBackToLanding?: () => void;
+  notConfigured?: boolean;
+  onOpenSetup?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBackToLanding }) => {
+export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBackToLanding, notConfigured, onOpenSetup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +33,7 @@ export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBac
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {onBackToLanding && (
           <button
@@ -42,6 +44,26 @@ export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBac
             <span className="text-sm">Back to home</span>
           </button>
         )}
+
+        {notConfigured && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-500">App not configured</p>
+              <p className="text-xs text-amber-500/70 mt-0.5">Set up your Supabase, Stripe, and Resend credentials to get started.</p>
+            </div>
+            {onOpenSetup && (
+              <button
+                onClick={onOpenSetup}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-xs font-medium transition-colors shrink-0"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Setup
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <Logo className="text-3xl mb-4" />
           <h1 className="text-2xl font-bold text-textMain mb-2">Welcome back</h1>
@@ -93,7 +115,7 @@ export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBac
 
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || notConfigured}
               className="w-full"
               icon={loading ? undefined : <LogIn className="w-4 h-4" />}
             >
@@ -118,4 +140,3 @@ export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBac
     </div>
   );
 };
-
