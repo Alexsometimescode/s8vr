@@ -30,7 +30,7 @@
 ### Option 1 — CLI installer (recommended)
 
 ```bash
-npx create-s8vr install
+npx s8vr install
 ```
 
 This walks you through Supabase, Stripe, and Resend setup, writes your `.env` files, builds, and starts s8vr automatically.
@@ -39,14 +39,14 @@ This walks you through Supabase, Stripe, and Resend setup, writes your `.env` fi
 
 | Command | Description |
 |---|---|
-| `npx create-s8vr install` | Install s8vr interactively |
-| `npx create-s8vr update` | Pull latest changes, rebuild, restart |
-| `npx create-s8vr config` | Reconfigure environment variables |
-| `npx create-s8vr restart` | Restart services |
+| `npx s8vr install` | Install s8vr interactively |
+| `npx s8vr update` | Pull latest changes, rebuild, restart |
+| `npx s8vr config` | Reconfigure environment variables |
+| `npx s8vr restart` | Restart services |
 
 **If you already cloned this repo**, install the `s8vr` binary globally:
 ```bash
-npm install -g ./create-s8vr
+npm install -g ./create-s8vr   # folder name stays create-s8vr, package name is s8vr
 ```
 
 Then use `s8vr` as a command anywhere:
