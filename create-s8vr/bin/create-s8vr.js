@@ -5,10 +5,10 @@
  * s8vr CLI
  * Interactive terminal installer for s8vr
  * Usage:
- *   npx @alexcodesometimes/s8vr           — install
- *   npx @alexcodesometimes/s8vr update    — pull latest, rebuild, restart
- *   npx @alexcodesometimes/s8vr config    — reconfigure environment variables
- *   npx @alexcodesometimes/s8vr restart   — restart s8vr services
+ *   npx s8vr-cli           — install
+ *   npx s8vr-cli update    — pull latest, rebuild, restart
+ *   npx s8vr-cli config    — reconfigure environment variables
+ *   npx s8vr-cli restart   — restart s8vr services
  */
 
 const readline = require('readline');
@@ -27,7 +27,7 @@ if (process.platform === 'win32') {
   console.log('  Please use WSL (Windows Subsystem for Linux):');
   console.log('  https://learn.microsoft.com/en-us/windows/wsl/install');
   console.log('');
-  console.log('  Once inside WSL, run: npx @alexcodesometimes/s8vr');
+  console.log('  Once inside WSL, run: npx s8vr-cli');
   console.log('');
   process.exit(1);
 }
@@ -795,7 +795,7 @@ async function cmdInstall() {
       ok('`s8vr` command installed to /usr/local/bin');
     } catch {
       warn('Could not install `s8vr` globally (try with sudo, or run manually):');
-      info(`npx @alexcodesometimes/s8vr update`);
+      info(`npx s8vr-cli update`);
     }
   }
 

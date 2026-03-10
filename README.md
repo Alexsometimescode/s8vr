@@ -30,7 +30,7 @@
 ### Option 1 — CLI installer (recommended)
 
 ```bash
-npx @alexcodesometimes/s8vr install
+npx s8vr-cli install
 ```
 
 This walks you through Supabase, Stripe, and Resend setup, writes your `.env` files, builds, and starts s8vr automatically.
@@ -39,10 +39,10 @@ This walks you through Supabase, Stripe, and Resend setup, writes your `.env` fi
 
 | Command | Description |
 |---|---|
-| `npx @alexcodesometimes/s8vr install` | Install s8vr interactively |
-| `npx @alexcodesometimes/s8vr update` | Pull latest changes, rebuild, restart |
-| `npx @alexcodesometimes/s8vr config` | Reconfigure environment variables |
-| `npx @alexcodesometimes/s8vr restart` | Restart services |
+| `npx s8vr-cli install` | Install s8vr interactively |
+| `npx s8vr-cli update` | Pull latest changes, rebuild, restart |
+| `npx s8vr-cli config` | Reconfigure environment variables |
+| `npx s8vr-cli restart` | Restart services |
 
 **If you already cloned this repo**, install the `s8vr` binary globally:
 ```bash

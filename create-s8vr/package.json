@@ -1,5 +1,5 @@
 {
-  "name": "@alexcodesometimes/s8vr",
+  "name": "s8vr-cli",
   "version": "1.2.0",
   "description": "Interactive terminal installer for s8vr — self-hosted invoicing",
   "keywords": ["s8vr", "invoicing", "self-hosted", "freelancer"],
