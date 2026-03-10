@@ -27,14 +27,41 @@
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1 — CLI installer (recommended)
+
+```bash
+npx s8vr install
+```
+
+This walks you through Supabase, Stripe, and Resend setup, writes your `.env` files, builds, and starts s8vr automatically.
+
+**CLI commands:**
+
+| Command | Description |
+|---|---|
+| `npx s8vr` or `s8vr` | Start s8vr |
+| `npx s8vr install` | Install s8vr interactively |
+| `npx s8vr update` | Pull latest changes, rebuild, restart |
+| `npx s8vr config` | Reconfigure environment variables |
+| `npx s8vr restart` | Restart services |
+
+**If you already cloned this repo**, install the CLI globally from the repo:
+```bash
+npm install -g ./create-s8vr
+```
+
+Then use `s8vr` as a command anywhere.
+
+---
+
+### Option 2 — Manual setup
+
+#### Prerequisites
 
 - **Node.js** 20.x or higher
 - **npm** or **yarn**
 - **Supabase** account (for database)
 - **Stripe** account (for payments)
-
-### Installation
 
 1. **Clone the repository:**
    ```bash
@@ -72,13 +99,13 @@
    - See `GETTING_STARTED.md` for detailed migration instructions
 
 6. **Run the development servers:**
-   
+
    **Terminal 1 - Backend:**
    ```bash
    cd backend
    npm run dev
    ```
-   
+
    **Terminal 2 - Frontend:**
    ```bash
    npm run dev

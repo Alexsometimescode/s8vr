@@ -18,7 +18,7 @@ All notable changes to s8vr are documented here.
 **Installation:**
 - Interactive bash installer (`curl -fsSL https://s8vr.app/install.sh | bash`)
 - Docker installer (`curl -fsSL https://s8vr.app/docker-install.sh | bash`)
-- NPM installer (`npx create-s8vr@latest`)
+- CLI installer (`npx s8vr install`) with `update`, `config`, and `restart` commands
 
 **Tech stack:**
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS, Recharts
