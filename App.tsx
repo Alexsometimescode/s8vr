@@ -7,7 +7,6 @@ import { shouldShowSetupWizard } from './src/lib/config';
 import { Login } from './components/auth/Login';
 import { SignUp } from './components/auth/SignUp';
 import Dashboard from './components/app/Dashboard';
-import LandingPage from './components/LandingPage';
 import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import AdminDashboard from './components/app/AdminDashboard';
 import { ClientInvoicePage } from './components/app/ClientInvoicePage';
@@ -33,8 +32,8 @@ const Toast: React.FC<{ toast: ToastMessage; onClose: (id: string) => void }> = 
 
   return (
     <div className={`flex items-start gap-3 p-4 rounded-xl border shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-5 duration-300 ${
-      toast.type === 'error' 
-        ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+      toast.type === 'error'
+        ? 'bg-red-500/10 border-red-500/30 text-red-400'
         : toast.type === 'success'
         ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
         : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
@@ -59,24 +58,14 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [authView, setAuthView] = useState<'landing' | 'login' | 'signup'>('landing');
+  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [view, setView] = useState<ViewState>('dashboard');
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [publicInvoiceId, setPublicInvoiceId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showSetup, setShowSetup] = useState(() => shouldShowSetupWizard());
-
-  // Global mouse tracking for background glow effect (landing page only)
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   // Check for public invoice URL on load (runs immediately, before auth check)
   useEffect(() => {
@@ -124,7 +113,7 @@ const App: React.FC = () => {
         .select('*')
         .eq('id', authUser.id)
         .single();
-      
+
       if (error) {
         console.error('Error fetching profile:', error);
         // Fallback to auth user data if users table query fails (RLS issues)
@@ -241,10 +230,10 @@ const App: React.FC = () => {
       };
       // Save invoice to database
       const savedInvoice = await createInvoice(invoiceWithCurrency, user.id);
-      
+
       // Determine if user is premium
       const isPremium = userProfile?.plan === 'pro' || userProfile?.plan === 'premium';
-      
+
       // Send invoice email with all required params
       const emailResult = await sendInvoiceEmail({
         to: newInvoice.clientEmail,
@@ -345,30 +334,8 @@ const App: React.FC = () => {
     );
   }
 
-  // Show landing page or auth pages if not logged in
+  // Show auth pages if not logged in
   if (!user) {
-    if (authView === 'landing') {
-      return (
-        <div className="dark relative overflow-hidden min-h-screen">
-          <div 
-            className="fixed pointer-events-none"
-            style={{
-              left: `${mousePosition.x}px`,
-              top: `${mousePosition.y}px`,
-              transform: 'translate(-50%, -50%)',
-              width: '800px',
-              height: '800px',
-              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)',
-              borderRadius: '50%',
-              filter: 'blur(100px)',
-              transition: 'all 0.15s ease-out',
-              zIndex: 0,
-            }}
-          />
-          <LandingPage />
-        </div>
-      );
-    }
     if (authView === 'login') {
       return (
         <div className="dark relative overflow-hidden min-h-screen">
@@ -377,7 +344,6 @@ const App: React.FC = () => {
               // Auth state change will handle this
             }}
             onSwitchToSignUp={() => setAuthView('signup')}
-            onBackToLanding={() => setAuthView('landing')}
           />
         </div>
       );
@@ -389,7 +355,6 @@ const App: React.FC = () => {
             // Auth state change will handle this
           }}
           onSwitchToLogin={() => setAuthView('login')}
-          onBackToLanding={() => setAuthView('landing')}
         />
       </div>
     );
