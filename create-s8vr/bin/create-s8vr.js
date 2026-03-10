@@ -776,6 +776,29 @@ async function cmdInstall() {
     ok(`Frontend started`);
   }
 
+  // ── Install s8vr command globally so users can just type: s8vr update
+  section('Installing s8vr command');
+  console.log('');
+  info('Installing s8vr command globally...');
+  const cliDir = path.join(absDir, 'create-s8vr');
+  let s8vrInstalled = false;
+  try {
+    execSync(`npm install -g "${cliDir}"`, { stdio: 'pipe' });
+    s8vrInstalled = true;
+    ok('`s8vr` command installed — run `s8vr update` anytime to update');
+  } catch {
+    // Fallback: write a shell wrapper to /usr/local/bin
+    try {
+      const wrapper = `#!/bin/sh\nnode "${cliDir}/bin/create-s8vr.js" "$@"\n`;
+      fs.writeFileSync('/usr/local/bin/s8vr', wrapper, { mode: 0o755 });
+      s8vrInstalled = true;
+      ok('`s8vr` command installed to /usr/local/bin');
+    } catch {
+      warn('Could not install `s8vr` globally (try with sudo, or run manually):');
+      info(`npx create-s8vr update`);
+    }
+  }
+
   // ── Done
   console.log('');
   console.log(`  ${c.dim}${'═'.repeat(54)}${c.reset}`);
@@ -790,10 +813,9 @@ async function cmdInstall() {
     console.log(`  ${c.dim}·${c.reset} Logs:    ${c.dim}pm2 logs${c.reset}`);
     console.log(`  ${c.dim}·${c.reset} Status:  ${c.dim}pm2 status${c.reset}`);
   }
-  console.log(`  ${c.dim}·${c.reset} Start:   ${c.dim}s8vr${c.reset}`);
-  console.log(`  ${c.dim}·${c.reset} Restart: ${c.dim}s8vr restart${c.reset}`);
   console.log(`  ${c.dim}·${c.reset} Update:  ${c.dim}s8vr update${c.reset}`);
   console.log(`  ${c.dim}·${c.reset} Config:  ${c.dim}s8vr config${c.reset}`);
+  console.log(`  ${c.dim}·${c.reset} Restart: ${c.dim}s8vr restart${c.reset}`);
   console.log(`  ${c.dim}·${c.reset} Docs:    ${c.blue}https://github.com/Alexsometimescode/s8vr${c.reset}`);
   console.log('');
 
