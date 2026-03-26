@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Invoice, InvoiceItem, InvoiceTheme, InvoiceCustomization } from '../../types';
 import { Button, Navbar, Logo } from '../ui/Shared';
 import { Modal, ConfirmModal } from '../ui/Modal';
-import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, LayoutTemplate, Building2, Palette, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText, Lock, Zap, Crown, AlertTriangle, ChevronDown, User, Users, Copy, ArrowUpRight } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, LayoutTemplate, Building2, Palette, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText, AlertTriangle, ChevronDown, User, Users, Copy, ArrowUpRight } from 'lucide-react';
 import { getNextInvoiceNumber } from '../../src/lib/invoices';
 
 // SECURITY: Validation Helper
@@ -34,90 +34,32 @@ interface InvoiceBuilderProps {
   existingClients?: ExistingClient[];
 }
 
-const TEMPLATES: { id: InvoiceTheme; name: string; description: string; isPremium?: boolean; items?: InvoiceItem[] }[] = [
-    // FREE TIER
+const TEMPLATES: { id: InvoiceTheme; name: string; description: string; items?: InvoiceItem[] }[] = [
+    { id: 'minimal', name: 'Minimal', description: 'Clean whitespace. Pure simplicity.' },
     {
-      id: 'minimal',
-      name: 'Minimal',
-      description: 'Clean whitespace. Pure simplicity.',
-      isPremium: false
+      id: 'corporate', name: 'Corporate', description: 'Structured header. Professional serif fonts.',
+      items: [{ id: '1', description: 'Consultation Services', amount: 1500 }, { id: '2', description: 'Implementation Phase', amount: 3500 }]
     },
     {
-      id: 'corporate',
-      name: 'Corporate',
-      description: 'Structured header. Professional serif fonts.',
-      isPremium: false,
-      items: [
-          { id: '1', description: 'Consultation Services', amount: 1500 },
-          { id: '2', description: 'Implementation Phase', amount: 3500 }
-      ]
+      id: 'startup', name: 'Startup', description: 'Friendly, geometric, and modern.',
+      items: [{ id: '1', description: 'MVP Development', amount: 5000 }, { id: '2', description: 'User Testing', amount: 1200 }]
     },
     {
-      id: 'startup',
-      name: 'Startup',
-      description: 'Friendly, geometric, and modern.',
-      isPremium: false,
-      items: [
-          { id: '1', description: 'MVP Development', amount: 5000 },
-          { id: '2', description: 'User Testing', amount: 1200 }
-      ]
-    },
-    
-    // PREMIUM TIER
-    {
-      id: 'agency',
-      name: 'Agency',
-      description: 'Big centered amount. Focus on value.',
-      isPremium: true,
-      items: [
-          { id: '1', description: 'Brand Strategy', amount: 4500 },
-          { id: '2', description: 'Visual Identity', amount: 3000 }
-      ]
+      id: 'agency', name: 'Agency', description: 'Big centered amount. Focus on value.',
+      items: [{ id: '1', description: 'Brand Strategy', amount: 4500 }, { id: '2', description: 'Visual Identity', amount: 3000 }]
     },
     {
-      id: 'creative',
-      name: 'Creative',
-      description: 'Dark mode aesthetic. Bold accents.',
-      isPremium: true,
-      items: [
-          { id: '1', description: 'Brand Identity Design', amount: 4000 },
-          { id: '2', description: 'Asset Export', amount: 500 }
-      ]
+      id: 'creative', name: 'Creative', description: 'Dark mode aesthetic. Bold accents.',
+      items: [{ id: '1', description: 'Brand Identity Design', amount: 4000 }, { id: '2', description: 'Asset Export', amount: 500 }]
     },
     {
-      id: 'tech',
-      name: 'Terminal',
-      description: 'Monospace fonts. Developer focused.',
-      isPremium: true,
-      items: [
-          { id: '1', description: 'Backend API Integration', amount: 3200 },
-          { id: '2', description: 'Server Configuration', amount: 800 }
-      ]
+      id: 'tech', name: 'Terminal', description: 'Monospace fonts. Developer focused.',
+      items: [{ id: '1', description: 'Backend API Integration', amount: 3200 }, { id: '2', description: 'Server Configuration', amount: 800 }]
     },
-    {
-      id: 'elegant',
-      name: 'Elegant',
-      description: 'Cream paper, gold accents, refined.',
-      isPremium: true
-    },
-    {
-      id: 'modern',
-      name: 'Modern',
-      description: 'Subtle gradients and soft shadows.',
-      isPremium: true
-    },
-    {
-      id: 'classic',
-      name: 'Classic',
-      description: 'Traditional layout. Double borders.',
-      isPremium: true
-    },
-    {
-      id: 'consultant',
-      name: 'Consultant',
-      description: 'Detailed grid. Clean lines.',
-      isPremium: true
-    }
+    { id: 'elegant', name: 'Elegant', description: 'Cream paper, gold accents, refined.' },
+    { id: 'modern', name: 'Modern', description: 'Subtle gradients and soft shadows.' },
+    { id: 'classic', name: 'Classic', description: 'Traditional layout. Double borders.' },
+    { id: 'consultant', name: 'Consultant', description: 'Detailed grid. Clean lines.' }
 ];
 
 // Payment Link Actions Component
@@ -342,23 +284,10 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   // Step: 'templates' -> 'editor'
   const [step, setStep] = useState<'templates' | 'editor'>('templates');
   const [theme, setTheme] = useState<InvoiceTheme>('minimal');
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
-  
-  // Determine pro status from userProfile (reactive)
-  const isProMember = userProfile?.plan === 'pro' || userProfile?.plan === 'premium';
-  
-  // Customization state
-  const [customization, setCustomization] = useState<InvoiceCustomization>({
-    textColor: '#18181b',
-    backgroundColor: '#ffffff',
-    accentColor: '#10b981',
-    fontFamily: 'inter'
-  });
-  const [showCustomization, setShowCustomization] = useState(false);
   
   const [invoice, setInvoice] = useState<Invoice>({
     id: crypto.randomUUID(),
@@ -437,10 +366,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   };
 
   const selectTemplate = (t: typeof TEMPLATES[0]) => {
-    if (t.isPremium && !isProMember) {
-      setShowUpgradeModal(true);
-      return;
-    }
     setTheme(t.id);
     setInvoice({ ...invoice, theme: t.id });
     setStep('editor');
@@ -463,12 +388,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
       clientName: '',
       clientEmail: '',
     });
-  };
-
-  const handleUpgrade = () => {
-    // In production, this would redirect to pricing/checkout page
-    window.open('/pricing', '_blank');
-    setShowUpgradeModal(false);
   };
 
   const handleSend = () => {
@@ -511,78 +430,32 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
               <p className="text-textMuted">Select a style for your invoice. You can always change it later.</p>
             </div>
 
-            {/* Pro Badge */}
-            <div className="flex justify-center mb-8">
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
-                isProMember 
-                  ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                  : 'bg-surfaceHighlight text-textMuted border border-border'
-              }`}>
-                {isProMember ? <Zap className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                {isProMember ? 'Pro Plan Active' : 'Free Plan'}
-                {!isProMember && (
-                  <button onClick={() => setShowUpgradeModal(true)} className="ml-2 text-emerald-500 hover:underline">
-                    Upgrade
-                  </button>
-                )}
-              </div>
-            </div>
-
             {/* 3x3 Template Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {TEMPLATES.map((t) => {
-                const isLocked = t.isPremium && !isProMember;
                 const isSelected = theme === t.id;
-                
                 return (
                   <button
                     key={t.id}
                     onClick={() => selectTemplate(t)}
                     className={`group relative bg-surface border-2 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
-                      isSelected 
-                        ? 'border-emerald-500 ring-2 ring-emerald-500/20' 
+                      isSelected
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                         : 'border-border hover:border-textMuted'
                     }`}
                   >
-                    {/* Template Preview */}
                     <div className="aspect-[4/3] p-4 bg-gradient-to-br from-surfaceHighlight to-surface flex items-center justify-center">
                       <div className="w-full max-w-[200px] transform scale-[0.6] origin-center">
                         <MiniInvoicePreview theme={t.id} />
                       </div>
                     </div>
-                    
-                    {/* Template Info */}
                     <div className="p-4 border-t border-border">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold text-textMain">{t.name}</h3>
-                        {t.isPremium && (
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 ${
-                            isLocked 
-                              ? 'bg-surfaceHighlight text-textMuted' 
-                              : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
-                          }`}>
-                            {isLocked ? <Lock className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
-                            PRO
-                          </span>
-                        )}
-                      </div>
+                      <h3 className="font-semibold text-textMain mb-1">{t.name}</h3>
                       <p className="text-sm text-textMuted">{t.description}</p>
                     </div>
-
-                    {/* Selected Indicator */}
                     {isSelected && (
                       <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
                         <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-
-                    {/* Locked Overlay */}
-                    {isLocked && (
-                      <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="px-4 py-2 bg-surface border border-border rounded-lg flex items-center gap-2">
-                          <Lock className="w-4 h-4 text-textMuted" />
-                          <span className="text-sm font-medium">Upgrade to unlock</span>
-                        </div>
                       </div>
                     )}
                   </button>
@@ -592,31 +465,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
           </div>
         </div>
 
-        {/* Upgrade Modal */}
-        {showUpgradeModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowUpgradeModal(false)} />
-            <div className="bg-surface border border-border rounded-2xl w-full max-w-md relative z-10 animate-in zoom-in-95 duration-300 overflow-hidden">
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                  <Crown className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-textMain mb-2">Upgrade to Pro</h3>
-                <p className="text-textMuted mb-6">
-                  Unlock premium invoice templates, advanced analytics, and more features to grow your business.
-                </p>
-                <div className="space-y-3">
-                  <Button onClick={handleUpgrade} className="w-full" icon={<Zap className="w-4 h-4" />}>
-                    Upgrade Now
-                  </Button>
-                  <button onClick={() => setShowUpgradeModal(false)} className="w-full py-3 text-textMuted hover:text-textMain transition-colors text-sm">
-                    Maybe later
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -863,149 +711,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                 </div>
                 <span className="text-sm text-emerald-500">Change</span>
               </button>
-            </div>
-
-            {/* Customization Options */}
-            <div>
-              <button
-                onClick={() => setShowCustomization(!showCustomization)}
-                className="w-full flex items-center justify-between text-xs font-bold text-textMuted uppercase tracking-wider mb-4"
-              >
-                <span className="flex items-center gap-2">
-                  <Palette className="w-4 h-4" /> Customize Style
-                  {isProMember && <span className="text-emerald-500 text-[10px] normal-case font-medium px-1.5 py-0.5 rounded bg-emerald-500/10">PRO</span>}
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCustomization ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {showCustomization && (
-                <div className="space-y-4 p-4 bg-background border border-border rounded-xl">
-                  {!isProMember && (
-                    <div className="p-3 bg-surfaceHighlight border border-border rounded-lg mb-4">
-                      <div className="flex items-center gap-2 text-textMuted text-sm">
-                        <Lock className="w-4 h-4" />
-                        <span>Upgrade to Pro to customize colors and fonts</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Text Color */}
-                  <div className={!isProMember ? 'opacity-50 pointer-events-none' : ''}>
-                    <label className="block text-sm font-medium text-textMuted mb-2">Text Color</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={customization.textColor}
-                        onChange={(e) => {
-                          setCustomization({ ...customization, textColor: e.target.value });
-                          setInvoice({ ...invoice, customization: { ...customization, textColor: e.target.value } });
-                        }}
-                        className="w-10 h-10 rounded-lg cursor-pointer border border-border"
-                      />
-                      <input
-                        type="text"
-                        value={customization.textColor}
-                        onChange={(e) => {
-                          setCustomization({ ...customization, textColor: e.target.value });
-                          setInvoice({ ...invoice, customization: { ...customization, textColor: e.target.value } });
-                        }}
-                        className="flex-1 bg-surfaceHighlight border border-border rounded-lg px-3 py-2 text-sm text-textMain"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Background Color */}
-                  <div className={!isProMember ? 'opacity-50 pointer-events-none' : ''}>
-                    <label className="block text-sm font-medium text-textMuted mb-2">Background Color</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={customization.backgroundColor}
-                        onChange={(e) => {
-                          setCustomization({ ...customization, backgroundColor: e.target.value });
-                          setInvoice({ ...invoice, customization: { ...customization, backgroundColor: e.target.value } });
-                        }}
-                        className="w-10 h-10 rounded-lg cursor-pointer border border-border"
-                      />
-                      <input
-                        type="text"
-                        value={customization.backgroundColor}
-                        onChange={(e) => {
-                          setCustomization({ ...customization, backgroundColor: e.target.value });
-                          setInvoice({ ...invoice, customization: { ...customization, backgroundColor: e.target.value } });
-                        }}
-                        className="flex-1 bg-surfaceHighlight border border-border rounded-lg px-3 py-2 text-sm text-textMain"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Accent Color */}
-                  <div className={!isProMember ? 'opacity-50 pointer-events-none' : ''}>
-                    <label className="block text-sm font-medium text-textMuted mb-2">Accent Color</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={customization.accentColor}
-                        onChange={(e) => {
-                          setCustomization({ ...customization, accentColor: e.target.value });
-                          setInvoice({ ...invoice, customization: { ...customization, accentColor: e.target.value } });
-                        }}
-                        className="w-10 h-10 rounded-lg cursor-pointer border border-border"
-                      />
-                      <input
-                        type="text"
-                        value={customization.accentColor}
-                        onChange={(e) => {
-                          setCustomization({ ...customization, accentColor: e.target.value });
-                          setInvoice({ ...invoice, customization: { ...customization, accentColor: e.target.value } });
-                        }}
-                        className="flex-1 bg-surfaceHighlight border border-border rounded-lg px-3 py-2 text-sm text-textMain"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Font Family */}
-                  <div className={!isProMember ? 'opacity-50 pointer-events-none' : ''}>
-                    <label className="block text-sm font-medium text-textMuted mb-2">Font Family</label>
-                    <select
-                      value={customization.fontFamily}
-                      onChange={(e) => {
-                        const font = e.target.value as InvoiceCustomization['fontFamily'];
-                        setCustomization({ ...customization, fontFamily: font });
-                        setInvoice({ ...invoice, customization: { ...customization, fontFamily: font } });
-                      }}
-                      className="w-full bg-surfaceHighlight border border-border rounded-lg px-3 py-2.5 text-sm text-textMain appearance-none cursor-pointer"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2371717a'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '16px' }}
-                    >
-                      <option value="inter" className="bg-zinc-900">Inter (Modern Sans)</option>
-                      <option value="georgia" className="bg-zinc-900">Georgia (Classic Serif)</option>
-                      <option value="merriweather" className="bg-zinc-900">Merriweather (Elegant Serif)</option>
-                      <option value="playfair" className="bg-zinc-900">Playfair Display (Luxury)</option>
-                      <option value="roboto-mono" className="bg-zinc-900">Roboto Mono (Technical)</option>
-                      <option value="space-grotesk" className="bg-zinc-900">Space Grotesk (Modern)</option>
-                    </select>
-                  </div>
-
-                  {/* Reset Button */}
-                  {isProMember && (
-                    <button
-                      onClick={() => {
-                        const defaultCustomization: InvoiceCustomization = {
-                          textColor: '#18181b',
-                          backgroundColor: '#ffffff',
-                          accentColor: '#10b981',
-                          fontFamily: 'inter'
-                        };
-                        setCustomization(defaultCustomization);
-                        setInvoice({ ...invoice, customization: defaultCustomization });
-                      }}
-                      className="w-full py-2 text-sm text-textMuted hover:text-textMain transition-colors"
-                    >
-                      Reset to Default
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Validation Status */}
