@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Shared';
-import { Save, User, Upload, Check, CreditCard, Loader2, Mail, Edit2, Send, X, Calendar } from 'lucide-react';
+import { Save, Upload, Loader2, Calendar, ExternalLink } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
-import { StripeConnect } from './StripeConnect';
 
 interface ProfileTabProps {
   userProfile: any;
@@ -21,10 +20,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const logoInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Email change state
-  const [editingEmail, setEditingEmail] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [emailSending, setEmailSending] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
@@ -80,10 +75,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
           name: editingProfile.name,
           avatar_url: avatarUrl,
           logo_url: logoUrl,
-          plan: editingProfile.plan || 'free',
-          role: editingProfile.role || 'user',
           created_at: userProfile.created_at || new Date().toISOString(),
-        }, { 
+        }, {
           onConflict: 'id'
         });
 
@@ -111,55 +104,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
     } finally {
       setSaving(false);
     }
-  };
-
-  const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const handleSendVerification = async () => {
-    if (!newEmail || !newEmail.includes('@')) {
-      setEmailMessage({ type: 'error', text: 'Please enter a valid email address' });
-      return;
-    }
-    
-    setEmailSending(true);
-    setEmailMessage(null);
-    
-    try {
-      const { error } = await supabase.auth.updateUser({
-        email: newEmail,
-      });
-      
-      if (error) {
-        // Handle specific error cases
-        if (error.message.includes('invalid')) {
-          setEmailMessage({ 
-            type: 'error', 
-            text: 'Email change requires a verified account. Please verify your current email first in Supabase dashboard.' 
-          });
-        } else if (error.message.includes('rate limit')) {
-          setEmailMessage({ type: 'error', text: 'Too many requests. Please try again later.' });
-        } else {
-          setEmailMessage({ type: 'error', text: error.message });
-        }
-        return;
-      }
-      
-      setEmailMessage({ type: 'success', text: 'Verification email sent to ' + newEmail + '!' });
-      setTimeout(() => {
-        setEditingEmail(false);
-        setNewEmail('');
-        setEmailMessage(null);
-      }, 3000);
-    } catch (error: any) {
-      console.error('Error updating email:', error);
-      setEmailMessage({ type: 'error', text: error.message || 'Failed to update email' });
-    } finally {
-      setEmailSending(false);
-    }
-  };
-
-  const handleConnectStripe = async () => {
-    // Legacy function replaced by StripeConnect component
   };
 
   const formatDate = (dateString: string) => {
@@ -236,21 +180,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
                 />
               </div>
 
-              {/* Plan Badge */}
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1.5 rounded-lg text-[12px] font-medium capitalize ${
-                  editingProfile?.plan === 'pro' 
-                    ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' 
-                    : 'bg-surfaceHighlight text-textMuted border border-border'
-                }`}>
-                  {editingProfile?.plan || 'free'} Plan
-                </span>
-                {editingProfile?.role === 'admin' && (
-                  <span className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    Admin
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -258,58 +187,8 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
         {/* Email Section */}
         <div className="relative z-10 p-8 border-b border-white/10">
           <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-3">Email Address</label>
-          
-          {editingEmail ? (
-            <div className="flex items-center gap-3 max-w-md">
-              <div className="flex-1 relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-textMuted" />
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl pl-11 pr-4 py-3 text-[14px] text-textMain placeholder:text-textMuted focus:border-[#10b981] focus:outline-none transition-colors"
-                  placeholder="New email address"
-                  autoFocus
-                />
-              </div>
-              <Button 
-                onClick={handleSendVerification}
-                disabled={emailSending || !newEmail}
-                size="sm"
-                icon={emailSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              >
-                {emailSending ? 'Sending...' : 'Verify'}
-              </Button>
-              <button 
-                onClick={() => { setEditingEmail(false); setNewEmail(''); }}
-                className="p-2 text-textMuted hover:text-textMain transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="text-[16px] text-textMain">{editingProfile?.email || 'No email'}</span>
-              <button
-                onClick={() => setEditingEmail(true)}
-                className="p-2 text-textMuted hover:text-[#10b981] hover:bg-[#10b981]/10 rounded-lg transition-colors"
-                title="Change email"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-          {editingEmail && (
-            <div className="mt-2">
-              {emailMessage ? (
-                <p className={`text-[12px] font-medium ${emailMessage.type === 'success' ? 'text-[#10b981]' : 'text-red-400'}`}>
-                  {emailMessage.text}
-                </p>
-              ) : (
-                <p className="text-[12px] text-textMuted">A verification link will be sent to your new email address.</p>
-              )}
-            </div>
-          )}
+          <span className="text-[16px] text-textMain">{editingProfile?.email || 'No email'}</span>
+          <p className="text-[12px] text-textMuted mt-1">To change your email, update it in your Supabase Auth dashboard.</p>
         </div>
 
         {/* Company Logo Section */}
@@ -362,17 +241,21 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
               </div>
             </div>
 
-            {/* Stripe Connection */}
+            {/* Stripe */}
             <div>
-              <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-2">Stripe Account</label>
-              <StripeConnect 
-                userId={userProfile.id} 
-                userEmail={userProfile.email}
-                onConnected={() => {
-                   // Refresh profile to show connected status if needed, though component handles its own state
-                   if (onRefresh) onRefresh();
-                }} 
-              />
+              <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-2">Stripe Payments</label>
+              <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-fit mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-sm font-medium">Configured via STRIPE_SECRET_KEY</span>
+              </div>
+              <a
+                href="https://dashboard.stripe.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-emerald-500 hover:underline inline-flex items-center gap-1"
+              >
+                Open Stripe Dashboard <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
         </div>

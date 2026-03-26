@@ -5,13 +5,12 @@ import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, Settings } from 'lucide-reac
 
 interface LoginProps {
   onSuccess: () => void;
-  onSwitchToSignUp: () => void;
   onBackToLanding?: () => void;
   notConfigured?: boolean;
   onOpenSetup?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBackToLanding, notConfigured, onOpenSetup }) => {
+export const Login: React.FC<LoginProps> = ({ onSuccess, onBackToLanding, notConfigured, onOpenSetup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -123,15 +122,7 @@ export const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToSignUp, onBac
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={onSwitchToSignUp}
-              className="text-sm text-emerald-500 hover:text-emerald-400"
-            >
-              Don't have an account? Sign up
-            </button>
-          </div>
-        </div>
+</div>
 
         <div className="mt-6 text-center text-xs text-textMuted">
           <p>Secure login powered by Supabase</p>

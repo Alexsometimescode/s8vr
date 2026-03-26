@@ -3,14 +3,11 @@ import { onAuthStateChange, getSession, signOut } from './src/lib/auth';
 import { fetchInvoices, createInvoice, updateInvoice, updateInvoiceAccessToken } from './src/lib/invoices';
 import { fetchClients, Client } from './src/lib/clients';
 import { sendInvoiceEmail } from './src/lib/email';
-import { shouldShowSetupWizard } from './src/lib/config';
 import { Login } from './components/auth/Login';
-import { SignUp } from './components/auth/SignUp';
 import Dashboard from './components/app/Dashboard';
 import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import AdminDashboard from './components/app/AdminDashboard';
 import { ClientInvoicePage } from './components/app/ClientInvoicePage';
-import { SetupWizard } from './components/setup';
 import { ViewState, Invoice } from './types';
 import { supabase } from './src/lib/supabase';
 import { DashboardSkeleton } from './components/ui/Skeleton';
@@ -58,14 +55,12 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [view, setView] = useState<ViewState>('dashboard');
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [publicInvoiceId, setPublicInvoiceId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [showSetup, setShowSetup] = useState(() => shouldShowSetupWizard());
 
   // Check for public invoice URL on load (runs immediately, before auth check)
   useEffect(() => {
@@ -211,10 +206,29 @@ const App: React.FC = () => {
   }, []);
 
   const navigate = (newView: ViewState, invoiceId?: string) => {
+    const id = invoiceId ?? activeInvoiceId ?? null;
+    window.history.pushState({ view: newView, invoiceId: id }, '');
     if (invoiceId) setActiveInvoiceId(invoiceId);
     setView(newView);
     window.scrollTo(0, 0);
   };
+
+  // Sync browser back/forward with app view state
+  useEffect(() => {
+    // Set initial history entry so back button works from the first view
+    window.history.replaceState({ view, invoiceId: activeInvoiceId }, '');
+
+    const onPopState = (e: PopStateEvent) => {
+      if (e.state?.view) {
+        setView(e.state.view);
+        setActiveInvoiceId(e.state.invoiceId ?? null);
+        window.scrollTo(0, 0);
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const handleOpenInvoice = (id: string) => {
     setActiveInvoiceId(id);
@@ -293,20 +307,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Setup Wizard - show if app is not configured
-  if (showSetup) {
-    return (
-      <div className="dark relative overflow-hidden min-h-screen">
-        <SetupWizard
-          onComplete={() => {
-            // Reload the page to apply new configuration
-            window.location.reload();
-          }}
-        />
-      </div>
-    );
-  }
-
   // Public Invoice Page (for clients via email link) - show even when not logged in
   if (view === 'public-invoice' && publicInvoiceId) {
     return (
@@ -336,25 +336,12 @@ const App: React.FC = () => {
 
   // Show auth pages if not logged in
   if (!user) {
-    if (authView === 'login') {
-      return (
-        <div className="dark relative overflow-hidden min-h-screen">
-          <Login
-            onSuccess={() => {
-              // Auth state change will handle this
-            }}
-            onSwitchToSignUp={() => setAuthView('signup')}
-          />
-        </div>
-      );
-    }
     return (
       <div className="dark relative overflow-hidden min-h-screen">
-        <SignUp
+        <Login
           onSuccess={() => {
             // Auth state change will handle this
           }}
-          onSwitchToLogin={() => setAuthView('login')}
         />
       </div>
     );

@@ -2,12 +2,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Logo } from '../ui/Shared';
 import { Invoice, ReminderFrequency, ReminderTone } from '../../types';
-import { LogOut, ArrowUpRight, Copy, Check, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, Zap, Clock, Calendar, Sliders, DollarSign, Activity, Trash2, ArrowLeft, AlertCircle, Settings, MessageSquarePlus, Upload, Shield, AlertTriangle, X, Send, Lock, ChevronLeft, ChevronRight, LayoutGrid, Users, ChevronDown, Mail, Phone, Globe, User, Loader2, CreditCard, BarChart3, PanelLeftClose, PanelLeft, Sparkles, Bug, MoreVertical } from 'lucide-react';
+import { LogOut, ArrowUpRight, Copy, Check, Plus, Menu, FileText, UserPlus, Download, Save, Search, Filter, Bell, Zap, Clock, Calendar, Sliders, DollarSign, Activity, Trash2, ArrowLeft, AlertCircle, Settings, Upload, AlertTriangle, X, Send, Lock, ChevronLeft, ChevronRight, LayoutGrid, Users, ChevronDown, Mail, Phone, Globe, User, Loader2, CreditCard, BarChart3, PanelLeftClose, PanelLeft, MoreVertical } from 'lucide-react';
 import { InvoicePreviewCard } from './InvoiceBuilder';
 import { fetchClients, createClient, updateClient, deleteClient } from '../../src/lib/clients';
 import { deleteInvoice } from '../../src/lib/invoices';
 import { supabase } from '../../src/lib/supabase';
-import { submitFeedback } from '../../src/lib/feedback';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ProfileTab } from './ProfileTab';
 import { Modal, ConfirmModal } from '../ui/Modal';
@@ -25,7 +24,6 @@ interface DashboardProps {
   userProfile?: any;
   onRefresh?: () => void;
   onNavigateAdmin?: () => void;
-  onOpenSetup?: () => void;
 }
 
 // Internal Components
@@ -298,8 +296,8 @@ const TIME_RANGES = [
   { id: 'custom', label: 'Custom Range' },
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onNavigateAdmin, onOpenSetup }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'reminders' | 'clients' | 'reports' | 'settings' | 'profile'>('overview');
+const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onNavigateAdmin }) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'reminders' | 'clients' | 'reports' | 'preferences' | 'profile'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -314,12 +312,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
       end: new Date().toISOString().split('T')[0] // Today
   });
   
-  // Feedback Modal State
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackType, setFeedbackType] = useState<'feature' | 'bug'>('feature');
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackSending, setFeedbackSending] = useState(false);
-  const [feedbackSuccess, setFeedbackSuccess] = useState<{ show: boolean; type: 'feature' | 'bug' }>({ show: false, type: 'feature' });
   
   // Clients State
   const [clients, setClients] = useState<any[]>([]);
@@ -363,7 +355,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   const [exporting, setExporting] = useState(false);
 
   // Settings State
-  const [emailNotifications, setEmailNotifications] = useState<boolean>(true);
   const [currency, setCurrency] = useState<string>('USD');
   const [invoiceNumberFormat, setInvoiceNumberFormat] = useState<string>('YYMM-seq');
   const [savingSettings, setSavingSettings] = useState(false);
@@ -373,7 +364,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
     if (userProfile) {
       setCurrency(userProfile.currency || 'USD');
       setInvoiceNumberFormat(userProfile.invoice_number_format || 'YYMM-seq');
-      setEmailNotifications(userProfile.email_notifications !== false); // Default to true if not set
     }
   }, [userProfile]);
 
@@ -539,34 +529,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
   const handleConnectStripe = async () => {
     showToast('info', 'Coming Soon', 'Stripe Connect integration will be available soon!');
-  };
-
-  // Save email notifications setting
-  const handleSaveEmailNotifications = async (newValue: boolean) => {
-    if (!userProfile?.id) return;
-    
-    setSavingSettings(true);
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ email_notifications: newValue })
-        .eq('id', userProfile.id);
-
-      if (error) throw error;
-
-      // Update local profile
-      if (onRefresh) {
-        await onRefresh();
-      }
-      showToast('success', 'Settings Updated', `Email notifications ${newValue ? 'enabled' : 'disabled'}`);
-    } catch (error: any) {
-      console.error('Error updating email notifications:', error);
-      showToast('error', 'Update Failed', error.message || 'Failed to update email notifications. Please try again.');
-      // Revert on error
-      setEmailNotifications(userProfile?.email_notifications !== false);
-    } finally {
-      setSavingSettings(false);
-    }
   };
 
   // Save currency setting
@@ -846,40 +808,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   };
 
   
-  const handleSendFeedback = async () => {
-    // Validate Input Length
-    if (feedbackText.length > 2000) {
-        showToast('error', 'Message Too Long', 'Please shorten your feedback to under 2000 characters.');
-        return;
-    }
-    if (!feedbackText.trim()) {
-        return;
-    }
-    
-    setFeedbackSending(true);
-    const submittedType = feedbackType;
-    
-    try {
-        await submitFeedback(
-            { type: feedbackType, message: feedbackText },
-            userProfile?.id,
-            userProfile?.email
-        );
-        
-        setFeedbackOpen(false);
-        setFeedbackText('');
-        // Show thank you modal
-        setFeedbackSuccess({ show: true, type: submittedType });
-    } catch (error) {
-        console.error('Error sending feedback:', error);
-        // Still close and show success - feedback table might not exist yet
-        setFeedbackOpen(false);
-        setFeedbackText('');
-        setFeedbackSuccess({ show: true, type: submittedType });
-    } finally {
-        setFeedbackSending(false);
-    }
-  };
 
   const hasUsedApp = invoices.some(i => i.status !== 'draft');
 
@@ -1125,61 +1053,13 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
         </nav>
 
         <div className="mt-auto space-y-2">
-            {/* Settings - Moved to Bottom */}
-            <NavTab 
-                active={activeTab === 'settings'} 
-                onClick={() => { setActiveTab('settings'); setEditingClient(null); }} 
-                icon={<Settings className="w-5 h-5" />} 
-                label="Settings" 
+            <NavTab
+                active={activeTab === 'preferences'}
+                onClick={() => { setActiveTab('preferences'); setEditingClient(null); }}
+                icon={<Settings className="w-5 h-5" />}
+                label="Preferences"
                 collapsed={sidebarCollapsed}
             />
-
-            {/* Admin Dashboard Button - Only for admins */}
-            {userProfile?.role === 'admin' && onNavigateAdmin && (
-              <div className="relative group w-full px-2">
-                <button
-                  onClick={onNavigateAdmin}
-                  className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-emerald-500 hover:bg-emerald-500/10 border border-transparent ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
-                >
-                  <span className="shrink-0 transition-colors flex items-center justify-center">
-                    <Shield className="w-5 h-5" />
-                  </span>
-                  {!sidebarCollapsed && (
-                    <span className="font-medium truncate text-[14px] text-white">Admin Panel</span>
-                  )}
-                </button>
-                {sidebarCollapsed && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-surface border border-border text-textMain text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl">
-                    Admin Panel
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-l border-b border-border rotate-45" />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Feedback Button */}
-             <div className="relative group w-full px-2">
-                 <button
-                    onClick={() => setFeedbackOpen(true)}
-                    className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-200 text-white hover:bg-gradient-to-br hover:from-white/10 hover:to-white/5 hover:backdrop-blur-xl hover:border-white/20 border border-transparent shadow-md shadow-black/5 ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}
-                 >
-                    <span className="shrink-0 transition-colors flex items-center justify-center text-white">
-                        <MessageSquarePlus className="w-5 h-5" />
-                    </span>
-                    {!sidebarCollapsed && (
-                         <>
-                             <span className="font-medium truncate text-[14px] text-white flex-1">Feedback</span>
-                             <ChevronRight className="w-4 h-4 text-white/60 shrink-0" />
-                         </>
-                    )}
-                 </button>
-                 {sidebarCollapsed && (
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-surface border border-border text-textMain text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl">
-                        Feedback
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-l border-b border-border rotate-45" />
-                    </div>
-                )}
-             </div>
 
             {/* Profile Section */}
             <div className={`pt-4 border-t border-white/10 transition-all duration-300 ${sidebarCollapsed ? 'mx-0' : ''}`}>
@@ -1237,7 +1117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                     <NavTab active={activeTab === 'reminders'} onClick={() => {setActiveTab('reminders'); setMobileMenuOpen(false)}} icon={<Bell className="w-5 h-5"/>} label="Reminders" />
                     <NavTab active={activeTab === 'clients'} onClick={() => {setActiveTab('clients'); setMobileMenuOpen(false)}} icon={<Users className="w-5 h-5"/>} label="Clients" />
                     <NavTab active={activeTab === 'reports'} onClick={() => {setActiveTab('reports'); setMobileMenuOpen(false)}} icon={<BarChart3 className="w-5 h-5"/>} label="Reports" />
-                    <NavTab active={activeTab === 'settings'} onClick={() => {setActiveTab('settings'); setMobileMenuOpen(false)}} icon={<Settings className="w-5 h-5"/>} label="Settings" />
+                    <NavTab active={activeTab === 'preferences'} onClick={() => {setActiveTab('preferences'); setMobileMenuOpen(false)}} icon={<Settings className="w-5 h-5"/>} label="Preferences" />
                  </nav>
                   <div className="mt-auto pt-8 border-t border-border space-y-4">
                       <button 
@@ -1573,7 +1453,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                                 type="time"
                                                 value={reminderConfig.time}
                                                 onChange={(e) => setReminderConfig({...reminderConfig, time: e.target.value})}
-                                                className="w-full sm:w-auto px-4 py-2 bg-gradient-to-br from-surface/30 to-surface/20 backdrop-blur-xl border border-white/10 rounded-lg text-textMain focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/30 focus:bg-gradient-to-br focus:from-surface/40 focus:to-surface/30 shadow-md shadow-black/5 transition-all"
+                                                className="w-full sm:w-auto px-4 py-2 bg-surface border border-border rounded-lg text-textMain focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all [color-scheme:dark]"
                                             />
                                             {getNextReminderTime() && (
                                                 <div className="flex items-center gap-2 text-xs sm:text-sm text-textMuted flex-wrap">
@@ -1924,41 +1804,15 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                 );
             })()}
 
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
+            {/* Preferences Tab */}
+            {activeTab === 'preferences' && (
                 <div className="max-w-6xl mx-auto animate-in fade-in duration-500 space-y-8">
                     <div>
-                        <h3 className="text-[20px] font-medium text-textMain mb-2">Settings</h3>
-                        <p className="text-textMuted">Manage your preferences</p>
+                        <h3 className="text-[20px] font-medium text-textMain mb-2">Preferences</h3>
+                        <p className="text-textMuted">Customize how s8vr works for you</p>
                     </div>
 
                     <div className="space-y-4">
-                        {/* Email Notifications */}
-                        <div className="bg-surface border border-border rounded-2xl p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-500">
-                                        <Bell className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-textMain">Email Notifications</div>
-                                        <div className="text-sm text-textMuted">Receive email updates for invoice activity</div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        const newValue = !emailNotifications;
-                                        setEmailNotifications(newValue);
-                                        await handleSaveEmailNotifications(newValue);
-                                    }}
-                                    disabled={savingSettings}
-                                    className={`w-14 h-8 rounded-full relative transition-colors disabled:opacity-50 ${emailNotifications ? 'bg-emerald-500' : 'bg-surfaceHighlight'}`}
-                                >
-                                    <div className={`absolute top-1 bottom-1 w-6 bg-white rounded-full shadow transition-all ${emailNotifications ? 'left-7' : 'left-1'}`} />
-                                </button>
-                            </div>
-                        </div>
-
                         {/* Currency */}
                         <div className="bg-surface border border-border rounded-2xl p-6">
                             <div className="flex items-center justify-between">
@@ -1973,11 +1827,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 </div>
                                 <select
                                     value={currency}
-                                    onChange={async (e) => {
-                                        const newCurrency = e.target.value;
-                                        setCurrency(newCurrency);
-                                        await handleSaveCurrency(newCurrency);
-                                    }}
+                                    onChange={async (e) => { setCurrency(e.target.value); await handleSaveCurrency(e.target.value); }}
                                     disabled={savingSettings}
                                     className="bg-background border border-border rounded-lg px-4 py-2 text-textMain focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                                 >
@@ -2004,11 +1854,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 </div>
                                 <select
                                     value={invoiceNumberFormat}
-                                    onChange={async (e) => {
-                                        const newFormat = e.target.value;
-                                        setInvoiceNumberFormat(newFormat);
-                                        await handleSaveInvoiceFormat(newFormat);
-                                    }}
+                                    onChange={async (e) => { setInvoiceNumberFormat(e.target.value); await handleSaveInvoiceFormat(e.target.value); }}
                                     disabled={savingSettings}
                                     className="bg-background border border-border rounded-lg px-4 py-2 text-textMain focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                                 >
@@ -2018,52 +1864,25 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 </select>
                             </div>
                         </div>
-                    </div>
 
-                    {/* s8vr Configuration */}
-                    <div>
-                        <h3 className="text-[16px] font-medium text-textMain mb-4">s8vr Configuration</h3>
-                        <div className="space-y-4">
-                            {/* Config Editor */}
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 rounded-full bg-zinc-500/10 text-zinc-400">
-                                            <Sliders className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-textMain">Setup & Configuration</div>
-                                            <div className="text-sm text-textMuted">Edit Supabase, Stripe, and Resend credentials</div>
-                                        </div>
+                        {/* Restart App */}
+                        <div className="bg-surface border border-border rounded-2xl p-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-full bg-amber-500/10 text-amber-500">
+                                        <Activity className="w-6 h-6" />
                                     </div>
-                                    <button
-                                        onClick={onOpenSetup}
-                                        className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-textMain text-sm font-medium transition-colors border border-border"
-                                    >
-                                        Open Config
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Restart App */}
-                            <div className="bg-surface border border-border rounded-2xl p-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-3 rounded-full bg-amber-500/10 text-amber-500">
-                                            <Activity className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-textMain">Restart App</div>
-                                            <div className="text-sm text-textMuted">Reload to apply config changes or recover from errors</div>
-                                        </div>
+                                    <div>
+                                        <div className="font-bold text-textMain">Restart App</div>
+                                        <div className="text-sm text-textMuted">Reload to apply config changes or recover from errors</div>
                                     </div>
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-sm font-medium transition-colors border border-amber-500/20"
-                                    >
-                                        Restart
-                                    </button>
                                 </div>
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-sm font-medium transition-colors border border-amber-500/20"
+                                >
+                                    Restart
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2346,121 +2165,6 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
            />
        )}
 
-       {/* Feedback Modal - with blur background */}
-       {feedbackOpen && (
-           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-               <div 
-                   className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" 
-                   onClick={() => !feedbackSending && setFeedbackOpen(false)} 
-               />
-               <div className="bg-surface border border-border rounded-2xl w-full max-w-md relative z-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 shadow-2xl overflow-hidden">
-                   {/* Header */}
-                   <div className="flex justify-between items-center p-6 border-b border-border">
-                       <h3 className="text-[18px] font-medium text-textMain">Send Feedback</h3>
-                       <button 
-                           onClick={() => setFeedbackOpen(false)} 
-                           className="p-2 text-textMuted hover:text-textMain hover:bg-surfaceHighlight rounded-lg transition-colors"
-                       >
-                           <X className="w-5 h-5"/>
-                       </button>
-                   </div>
-                   
-                   <div className="p-6 space-y-5">
-                       {/* Type Selection */}
-                       <div className="flex gap-2">
-                           <button
-                               onClick={() => setFeedbackType('feature')}
-                               className={`flex-1 py-2.5 px-4 rounded-xl text-[14px] font-medium transition-all ${
-                                   feedbackType === 'feature'
-                                       ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/30'
-                                       : 'bg-background border border-border text-textMuted hover:text-textMain'
-                               }`}
-                           >
-                               Feature Request
-                           </button>
-                           <button
-                               onClick={() => setFeedbackType('bug')}
-                               className={`flex-1 py-2.5 px-4 rounded-xl text-[14px] font-medium transition-all ${
-                                   feedbackType === 'bug'
-                                       ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                                       : 'bg-background border border-border text-textMuted hover:text-textMain'
-                               }`}
-                           >
-                               Report Bug
-                           </button>
-                       </div>
-
-                       {/* Message */}
-                       <textarea 
-                           className="w-full h-32 bg-background border border-border rounded-xl p-4 text-[14px] focus:outline-none focus:border-[#10b981] text-textMain placeholder:text-textMuted resize-none transition-colors"
-                           placeholder={feedbackType === 'feature' ? "I wish s8vr could..." : "I found an issue with..."}
-                           value={feedbackText}
-                           onChange={(e) => setFeedbackText(e.target.value)}
-                       />
-                       
-                       {/* Actions */}
-                       <div className="flex justify-end gap-3 pt-2">
-                           <Button variant="ghost" onClick={() => setFeedbackOpen(false)}>Cancel</Button>
-                           <Button 
-                               onClick={handleSendFeedback} 
-                               disabled={!feedbackText.trim() || feedbackSending} 
-                               icon={feedbackSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4"/>}
-                           >
-                               {feedbackSending ? 'Sending...' : 'Send'}
-                           </Button>
-                       </div>
-                   </div>
-               </div>
-           </div>
-       )}
-
-       {/* Thank You Modal - after feedback submission */}
-       {feedbackSuccess.show && (
-           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-               <div 
-                   className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity" 
-                   onClick={() => setFeedbackSuccess({ ...feedbackSuccess, show: false })} 
-               />
-               <div className="bg-surface border border-border rounded-2xl w-full max-w-sm relative z-10 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 shadow-2xl overflow-hidden text-center">
-                   {/* Success Icon */}
-                   <div className="pt-8 pb-4">
-                       <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
-                           feedbackSuccess.type === 'feature' 
-                               ? 'bg-[#10b981]/10' 
-                               : 'bg-orange-500/10'
-                       }`}>
-                           {feedbackSuccess.type === 'feature' ? (
-                               <Sparkles className={`w-8 h-8 text-[#10b981]`} />
-                           ) : (
-                               <Bug className={`w-8 h-8 text-orange-400`} />
-                           )}
-                       </div>
-                   </div>
-                   
-                   {/* Message */}
-                   <div className="px-6 pb-6">
-                       <h3 className="text-[20px] font-semibold text-textMain mb-2">
-                           Thank You!
-                       </h3>
-                       <p className="text-[14px] text-textMuted leading-relaxed">
-                           {feedbackSuccess.type === 'feature' 
-                               ? "We appreciate your feature request! Your ideas help us make s8vr better for everyone."
-                               : "Thanks for reporting this bug! We'll look into it and work on a fix."}
-                       </p>
-                   </div>
-                   
-                   {/* Close Button */}
-                   <div className="px-6 pb-6">
-                       <Button 
-                           onClick={() => setFeedbackSuccess({ ...feedbackSuccess, show: false })}
-                           className="w-full"
-                       >
-                           Got it
-                       </Button>
-                   </div>
-               </div>
-           </div>
-       )}
 
        {/* Custom Date Range Modal */}
        <CustomDateModal 

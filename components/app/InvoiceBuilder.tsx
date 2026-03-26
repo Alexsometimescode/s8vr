@@ -1231,7 +1231,8 @@ const fontFamilyMap: Record<string, string> = {
 };
 
 export const InvoicePreviewCard: React.FC<InvoicePreviewProps> = ({ data, minimal, userProfile }) => {
-    const total = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const itemsTotal = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const total = itemsTotal > 0 ? itemsTotal : (data.amount || 0);
     const theme = data.theme || 'minimal';
     const customization = data.customization;
     

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "npx concurrently -n ui,api -c cyan,green \"vite\" \"npm run dev --prefix backend\"",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",

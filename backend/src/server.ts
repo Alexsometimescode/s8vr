@@ -6,7 +6,6 @@ import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getReminderEmailTemplate, getInvoiceEmailTemplate, getWelcomeEmailTemplate } from './emailTemplates';
-import setupRoutes from './routes/setup';
 
 // Extend Express Request to include user info
 interface AuthenticatedRequest extends Request {
@@ -135,7 +134,6 @@ app.get('/api', (req, res) => {
     endpoints: {
       health: '/health',
       api: '/api',
-      setup: '/api/setup/*',
       sendInvoice: 'POST /api/send-invoice',
       stripeConnect: '/api/connect/*',
       waitlist: 'POST /api/waitlist',
@@ -143,9 +141,6 @@ app.get('/api', (req, res) => {
     }
   });
 });
-
-// Setup routes (no auth required for initial setup)
-app.use('/api/setup', setupRoutes);
 
 // Waitlist endpoint - Add email to waitlist
 app.post('/api/waitlist', async (req, res) => {
@@ -212,126 +207,6 @@ app.post('/api/waitlist', async (req, res) => {
   }
 });
 
-// --- STRIPE CONNECT ROUTES ---
-
-// Step 1: Create Connect Account
-app.post('/api/connect/create-account', async (req, res) => {
-  try {
-    if (!stripe) {
-      return res.status(503).json({ error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY.' });
-    }
-
-    const { userId, email } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // Check if user already has an account
-    const { data: userData } = await supabase
-      .from('users')
-      .select('stripe_account_id')
-      .eq('id', userId)
-      .single();
-
-    if (userData?.stripe_account_id) {
-       return res.json({ accountId: userData.stripe_account_id });
-    }
-    
-    // Create Express account
-    // Platform is in Czechia, so default to CZ for connected accounts
-    const account = await stripe.accounts.create({
-      type: 'express',
-      country: 'CZ', // Platform is in Czechia
-      email: email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-    });
-
-    // Save account_id to database
-    await supabase
-      .from('users')
-      .update({ stripe_account_id: account.id })
-      .eq('id', userId);
-
-    res.json({ accountId: account.id });
-  } catch (error: any) {
-    console.error('Stripe Create Account Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Step 2: Create Account Link (for onboarding)
-app.post('/api/connect/create-account-link', async (req, res) => {
-  try {
-    if (!stripe) {
-      return res.status(503).json({ error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY.' });
-    }
-
-    const { accountId } = req.body;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    
-    const accountLink = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: `${frontendUrl}/dashboard`, // TODO: specific reauth page
-      return_url: `${frontendUrl}/dashboard?connected=true`,
-      type: 'account_onboarding',
-    });
-
-    res.json({ url: accountLink.url });
-  } catch (error: any) {
-    console.error('Stripe Account Link Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Step 3: Check Account Status
-app.get('/api/connect/status/:userId', async (req, res) => {
-  try {
-    if (!stripe) {
-      return res.status(503).json({ error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY.' });
-    }
-
-    const { userId } = req.params;
-    
-    const { data: userData } = await supabase
-      .from('users')
-      .select('stripe_account_id, stripe_account_status')
-      .eq('id', userId)
-      .single();
-
-    if (!userData || !userData.stripe_account_id) {
-      return res.json({ connected: false });
-    }
-
-    const accountId = userData.stripe_account_id;
-
-    // Retrieve account details from Stripe to verify status
-    const account = await stripe.accounts.retrieve(accountId);
-
-    const isConnected = account.details_submitted && account.charges_enabled;
-
-    // Update DB if status changed
-    if (isConnected && userData.stripe_account_status !== 'active') {
-       await supabase
-         .from('users')
-         .update({ stripe_account_status: 'active' })
-         .eq('id', userId);
-    }
-
-    res.json({
-      connected: isConnected,
-      accountId: accountId,
-      status: account.details_submitted ? 'active' : 'pending',
-    });
-  } catch (error: any) {
-    console.error('Stripe Status Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // --- PAYMENT ROUTES ---
 
 // Create payment intent for invoice
@@ -343,27 +218,15 @@ app.post('/api/payments/create-intent', async (req, res) => {
 
     const { invoiceId } = req.body;
     
-    // Get invoice
+    // Get invoice with items
     const { data: invoiceData, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*')
+      .select('*, invoice_items (*)')
       .eq('id', invoiceId)
       .single();
 
     if (invoiceError || !invoiceData) {
       return res.status(404).json({ error: 'Invoice not found' });
-    }
-
-    // Get user (freelancer) Stripe account
-    const { data: userData } = await supabase
-      .from('users')
-      .select('stripe_account_id, email')
-      .eq('id', invoiceData.user_id)
-      .single();
-
-    const stripeAccountId = userData?.stripe_account_id;
-    if (!stripeAccountId) {
-      return res.status(400).json({ error: 'Freelancer is not connected to Stripe' });
     }
 
     // Get client email if available
@@ -377,25 +240,23 @@ app.post('/api/payments/create-intent', async (req, res) => {
       clientEmail = clientData?.email || '';
     }
 
-    // Get currency from invoice, fallback to user's default currency, then USD
+    // Get currency: invoice → user default → USD
     let invoiceCurrency = invoiceData.currency?.toLowerCase() || 'usd';
     if (!invoiceCurrency || invoiceCurrency === 'usd') {
-      const { data: userData } = await supabase
+      const { data: ownerData } = await supabase
         .from('users')
         .select('currency')
         .eq('id', invoiceData.user_id)
         .single();
-      invoiceCurrency = userData?.currency?.toLowerCase() || 'usd';
+      invoiceCurrency = ownerData?.currency?.toLowerCase() || 'usd';
     }
 
-    const amountInCents = Math.round(Number(invoiceData.amount) * 100);
-    const platformFee = Math.round(amountInCents * 0.03); // 3% fee
-    const transferAmount = amountInCents - platformFee; // Amount to transfer to connected account
+    // Use items sum as fallback if stored amount is 0
+    const itemsSum = (invoiceData.invoice_items as any[] || []).reduce((sum: number, item: any) => sum + parseFloat(item.amount || 0), 0);
+    const effectiveAmount = Number(invoiceData.amount) > 0 ? Number(invoiceData.amount) : itemsSum;
+    const amountInCents = Math.round(effectiveAmount * 100);
 
-    // Use "Separate Charges and Transfers" pattern
-    // This works for both same-region and cross-border scenarios
-    // 1. Charge happens on platform account
-    // 2. After successful payment, webhook triggers transfer to connected account
+    // Direct payment — money goes straight to the owner's Stripe account (STRIPE_SECRET_KEY)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: invoiceCurrency,
@@ -403,12 +264,9 @@ app.post('/api/payments/create-intent', async (req, res) => {
         invoice_id: invoiceId,
         user_id: invoiceData.user_id,
         client_email: clientEmail,
-        connected_account_id: stripeAccountId,
-        transfer_amount: transferAmount.toString(),
       },
     });
 
-    // Save payment_intent_id to invoice
     await supabase
       .from('invoices')
       .update({ stripe_payment_intent_id: paymentIntent.id })
@@ -417,7 +275,6 @@ app.post('/api/payments/create-intent', async (req, res) => {
     res.json({
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
-      stripeAccountId: stripeAccountId, // Needed for frontend Stripe Elements
     });
   } catch (error: any) {
     console.error('Create Payment Intent Error:', error);
@@ -490,11 +347,8 @@ app.post('/api/send-invoice', async (req, res) => {
       issueDate: issueDate ? new Date(issueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
     });
 
-    // Determine sender based on user plan
-    // Free users: Invoices@s8vr.app
-    // Premium users: User's name as display name
-    const senderName = isPremium ? (fromName || 's8vr') : 's8vr Invoices';
-    const senderEmail = 'invoices@s8vr.app'; // Verified domain
+    const senderName = fromName || 'Invoices';
+    const senderEmail = process.env.FROM_EMAIL || 'invoices@s8vr.app';
 
     // Send email via Resend API
     const response = await fetch('https://api.resend.com/emails', {
@@ -724,31 +578,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
   switch (event.type) {
     case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      
-      // Transfer funds to connected account if specified
-      const connectedAccountId = paymentIntent.metadata?.connected_account_id;
-      const transferAmount = paymentIntent.metadata?.transfer_amount;
-      
-      if (connectedAccountId && transferAmount && stripe) {
-        try {
-          // Create transfer to connected account
-          // Use the same currency as the payment intent
-          const transfer = await stripe.transfers.create({
-            amount: parseInt(transferAmount),
-            currency: paymentIntent.currency || 'usd',
-            destination: connectedAccountId,
-            transfer_group: paymentIntent.id,
-            metadata: {
-              payment_intent_id: paymentIntent.id,
-              invoice_id: paymentIntent.metadata?.invoice_id || '',
-            },
-          });
-        } catch (transferError: any) {
-          console.error('Transfer failed:', transferError.message);
-          // Payment succeeded but transfer failed - log this for manual resolution
-        }
-      }
-      
+
       // Update invoice status
       const { data, error } = await supabase
         .from('invoices')
@@ -1331,7 +1161,7 @@ app.post('/api/reminders/process', async (req, res) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: 'S8VR <noreply@s8vr.app>',
+              from: `${userName || 'Invoices'} <${process.env.FROM_EMAIL || 'noreply@s8vr.app'}>`,
               to: [clientEmail],
               subject: subject,
               html: html,

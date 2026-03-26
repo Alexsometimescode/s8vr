@@ -80,7 +80,6 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
   const [accessDenied, setAccessDenied] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -158,14 +157,9 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
 
       if (res.ok) {
         setClientSecret(data.clientSecret);
-        setStripeAccountId(data.stripeAccountId);
       } else {
         console.warn('Payment initialization failed:', data.error);
-        if (data.error === 'Freelancer is not connected to Stripe') {
-            setPaymentError('The sender has not set up online payments yet.');
-        } else {
-            setPaymentError('Online payment is currently unavailable.');
-        }
+        setPaymentError('Online payment is currently unavailable.');
       }
     } catch (err) {
       console.error('Error initializing payment:', err);
@@ -250,6 +244,10 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
     );
   }
 
+  // Compute effective amount: use items sum if DB amount is 0
+  const itemsTotal = invoice.items?.reduce((sum, item) => sum + (item.amount || 0), 0) ?? 0;
+  const displayAmount = itemsTotal > 0 ? itemsTotal : invoice.amount;
+
   // Payment Complete state
   if (isPaid) {
     return (
@@ -261,7 +259,7 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
           <h2 className="text-2xl font-bold text-textMain mb-2">Payment Complete</h2>
           <p className="text-textMuted mb-2">Invoice #{invoice.invoiceNumber}</p>
           <p className="text-4xl font-bold text-emerald-500 mb-6">
-            ${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ${displayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
           <p className="text-sm text-textMuted">Thank you for your payment!</p>
           <p className="text-xs text-textMuted mt-4">
@@ -308,7 +306,7 @@ export const ClientInvoicePage: React.FC<ClientInvoicePageProps> = ({ invoiceId 
               <div className="mb-6">
                 <p className="text-sm text-textMuted mb-1">Amount Due</p>
                 <p className="text-4xl font-bold text-textMain">
-                  ${invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ${displayAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
