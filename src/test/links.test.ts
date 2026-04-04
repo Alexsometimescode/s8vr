@@ -17,7 +17,6 @@ const WRONG_PATTERNS = [
 // All source files that should reference the repo URL
 const SOURCE_FILES = [
   'components/ui/Shared.tsx',
-  'components/setup/CompleteStep.tsx',
   'README.md',
   'CHANGELOG.md',
   'MIGRATIONS.md',
@@ -31,7 +30,6 @@ const SOURCE_FILES = [
 // URLs that must appear at least once in specific files
 const REQUIRED_URLS: Record<string, string[]> = {
   'components/ui/Shared.tsx':          [CORRECT_REPO],
-  'components/setup/CompleteStep.tsx': [CORRECT_REPO, `${CORRECT_REPO}/issues`],
   'README.md':                         [`${CORRECT_REPO}.git`],
   'CHANGELOG.md':                      [CORRECT_REPO],
   'public/install.sh':                 [CORRECT_REPO],

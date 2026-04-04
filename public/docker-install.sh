@@ -218,7 +218,6 @@ FROM_EMAIL=${FROM_EMAIL}
 
 # Setup
 NODE_ENV=production
-VITE_SETUP_COMPLETE=true
 EOF
 
 ok ".env written"

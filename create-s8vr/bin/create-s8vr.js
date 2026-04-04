@@ -491,7 +491,6 @@ async function cmdConfig() {
     `VITE_SUPABASE_URL=${finalSupabaseUrl}`,
     `VITE_SUPABASE_ANON_KEY=${finalSupabaseAnonKey}`,
     `VITE_STRIPE_PUBLISHABLE_KEY=${finalStripePublishableKey}`,
-    `VITE_SETUP_COMPLETE=true`,
   ].join('\n');
 
   const backendEnv = [
@@ -681,7 +680,6 @@ async function cmdInstall() {
     `VITE_SUPABASE_URL=${supabaseUrl}`,
     `VITE_SUPABASE_ANON_KEY=${supabaseAnonKey}`,
     `VITE_STRIPE_PUBLISHABLE_KEY=${stripePublishableKey}`,
-    `VITE_SETUP_COMPLETE=true`,
   ].join('\n');
 
   const backendEnv = [

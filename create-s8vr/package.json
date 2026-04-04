@@ -1,6 +1,6 @@
 {
   "name": "s8vr-cli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Interactive terminal installer for s8vr — self-hosted invoicing",
   "keywords": ["s8vr", "invoicing", "self-hosted", "freelancer"],
   "homepage": "https://s8vr.app",
@@ -11,7 +11,7 @@
   "license": "MIT",
   "main": "./bin/create-s8vr.js",
   "bin": {
-    "s8vr": "./bin/create-s8vr.js"
+    "s8vr": "bin/create-s8vr.js"
   },
   "engines": {
     "node": ">=18.0.0"
