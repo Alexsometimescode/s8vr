@@ -1865,6 +1865,30 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                             </div>
                         </div>
 
+                        {/* Edit Configuration */}
+                        <div className="bg-surface border border-border rounded-2xl p-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-500">
+                                        <Settings className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-textMain">Edit Configuration</div>
+                                        <div className="text-sm text-textMuted">Update Supabase, Stripe, or Resend credentials</div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText('s8vr config').catch(() => {});
+                                        showToast('success', 'Copied!', 'Run "s8vr config" in your terminal to update credentials');
+                                    }}
+                                    className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-sm font-medium transition-colors border border-emerald-500/20"
+                                >
+                                    s8vr config
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Restart App */}
                         <div className="bg-surface border border-border rounded-2xl p-6">
                             <div className="flex items-center justify-between">
