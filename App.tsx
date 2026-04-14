@@ -109,9 +109,6 @@ const App: React.FC = () => {
 
   // Check auth state on mount
   useEffect(() => {
-    // Skip auth check if we are on a public view
-    if (publicInvoiceId) return;
-
     const checkSession = async () => {
       const session = await getSession();
       if (session?.user) {
