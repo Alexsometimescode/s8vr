@@ -7,7 +7,6 @@ import { Login } from './components/auth/Login';
 import Dashboard from './components/app/Dashboard';
 import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import AdminDashboard from './components/app/AdminDashboard';
-import { ClientInvoicePage } from './components/app/ClientInvoicePage';
 import { ViewState, Invoice } from './types';
 import { supabase } from './src/lib/supabase';
 import { DashboardSkeleton } from './components/ui/Skeleton';
@@ -59,36 +58,7 @@ const App: React.FC = () => {
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [publicInvoiceId, setPublicInvoiceId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-
-  // Check for public invoice URL on load (runs immediately, before auth check)
-  useEffect(() => {
-    const path = window.location.pathname;
-    const searchParams = new URLSearchParams(window.location.search);
-    const hasToken = searchParams.get('token');
-
-    // Handle /invoice/:id route for public invoice viewing
-    if (path.startsWith('/invoice/') && hasToken) {
-      const invoiceId = path.replace('/invoice/', '').split('?')[0];
-      if (invoiceId) {
-        setPublicInvoiceId(invoiceId);
-        setView('public-invoice');
-        setLoading(false); // Don't wait for auth for public pages
-        return;
-      }
-    }
-    // Handle /pay/:id route
-    if (path.startsWith('/pay/') && hasToken) {
-      const invoiceId = path.replace('/pay/', '').split('?')[0];
-      if (invoiceId) {
-        setPublicInvoiceId(invoiceId);
-        setView('public-invoice');
-        setLoading(false); // Don't wait for auth for public pages
-        return;
-      }
-    }
-  }, []);
 
   // Toast notification helper
   const showToast = (type: 'error' | 'success' | 'info', title: string, message: string) => {
@@ -165,7 +135,7 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [publicInvoiceId]);
+  }, []);
 
   // Fetch invoices and clients when user is logged in
   useEffect(() => {
@@ -262,11 +232,15 @@ const App: React.FC = () => {
         userLogo: userProfile?.logo_url || userProfile?.avatar_url,
         isPremium: isPremium,
         invoiceId: savedInvoice.id,
+        currency: newInvoice.currency || invoiceWithCurrency.currency,
       });
 
-      // Store the access token with the invoice for secure link verification
+      // Store the access token and checkout URL with the invoice
       if (emailResult.success && emailResult.accessToken) {
         await updateInvoiceAccessToken(savedInvoice.id, emailResult.accessToken);
+      }
+      if (emailResult.checkoutUrl) {
+        await updateInvoice(savedInvoice.id, { checkoutUrl: emailResult.checkoutUrl } as any);
       }
 
       await loadInvoices(); // Reload invoices
@@ -307,14 +281,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Public Invoice Page (for clients via email link) - show even when not logged in
-  if (view === 'public-invoice' && publicInvoiceId) {
-    return (
-      <div className="dark relative overflow-hidden min-h-screen">
-        <ClientInvoicePage invoiceId={publicInvoiceId} />
-      </div>
-    );
-  }
 
   // Admin Dashboard View
   if (view === 'admin') {
@@ -347,7 +313,7 @@ const App: React.FC = () => {
     );
   }
 
-  // Client View (public invoice link - legacy)
+  // Client View (legacy - kept for internal preview only)
   if (view === 'client-view' && activeInvoiceId) {
     const invoice = invoices.find(i => i.id === activeInvoiceId);
     if (!invoice) return <div>Invoice not found</div>;
@@ -404,6 +370,7 @@ const App: React.FC = () => {
           invoice={invoices.find(i => i.id === activeInvoiceId) as Invoice}
           onClose={() => setActiveInvoiceId(null)}
           userProfile={userProfile}
+          onRefresh={async () => { await loadInvoices(); }}
         />
       )}
 

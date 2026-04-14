@@ -2,10 +2,13 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getReminderEmailTemplate, getInvoiceEmailTemplate, getWelcomeEmailTemplate } from './emailTemplates';
+import { generateInvoicePdf } from './invoicePdf';
 
 // Extend Express Request to include user info
 interface AuthenticatedRequest extends Request {
@@ -294,19 +297,20 @@ app.post('/api/send-invoice', async (req, res) => {
       });
     }
 
-    const { 
-      to, 
-      clientName, 
-      invoiceNumber, 
-      amount, 
-      dueDate, 
+    const {
+      to,
+      clientName,
+      invoiceNumber,
+      amount,
+      dueDate,
       issueDate,
-      items, 
-      fromName, 
+      items,
+      fromName,
       fromEmail,
       userLogo,
       isPremium,
-      invoiceId
+      invoiceId,
+      currency
     } = req.body;
 
     // Validate required fields
@@ -320,12 +324,46 @@ app.post('/api/send-invoice', async (req, res) => {
     // Generate secure access token for this invoice
     const accessToken = crypto.randomBytes(32).toString('hex');
 
-    // Use FRONTEND_URL from env (for local dev: http://localhost:3000)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-    // Generate links with secure token
+    // Build payment link — use Stripe Checkout if Stripe is configured, otherwise fall back to app invoice page
+    let paymentLink = `${frontendUrl}/invoice/${invoiceId || invoiceNumber}?token=${accessToken}`;
+    if (stripe && invoiceId) {
+      try {
+        const lineItems = Array.isArray(items) && items.length > 0
+          ? items.map((item: { description: string; amount: number }) => ({
+              price_data: {
+                currency: (currency || 'usd').toLowerCase(),
+                product_data: { name: item.description || 'Service' },
+                unit_amount: Math.round(Number(item.amount) * 100),
+              },
+              quantity: 1,
+            }))
+          : [{
+              price_data: {
+                currency: (currency || 'usd').toLowerCase(),
+                product_data: { name: `Invoice #${invoiceNumber}` },
+                unit_amount: Math.round(Number(amount) * 100),
+              },
+              quantity: 1,
+            }];
+
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: lineItems,
+          mode: 'payment',
+          customer_email: to,
+          metadata: { invoiceId, invoiceNumber },
+          success_url: `https://s8vr.app/?paid=1`,
+          cancel_url: `${frontendUrl}/invoice/${invoiceId}?token=${accessToken}`,
+        });
+        if (session.url) paymentLink = session.url;
+      } catch (stripeErr: any) {
+        console.warn('Stripe Checkout session failed, falling back to app link:', stripeErr.message);
+      }
+    }
+
     const invoiceViewLink = `${frontendUrl}/invoice/${invoiceId || invoiceNumber}?token=${accessToken}`;
-    const paymentLink = `${frontendUrl}/pay/${invoiceId || invoiceNumber}?token=${accessToken}`;
     const reportLink = `${frontendUrl}/report/${invoiceId || invoiceNumber}`;
 
     // Format the due date
@@ -345,10 +383,35 @@ app.post('/api/send-invoice', async (req, res) => {
       paymentLink: paymentLink,
       items: items,
       issueDate: issueDate ? new Date(issueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      currency: currency,
     });
 
     const senderName = fromName || 'Invoices';
     const senderEmail = process.env.FROM_EMAIL || 'invoices@s8vr.app';
+
+    // Generate PDF attachment
+    let pdfAttachment: { filename: string; content: string } | null = null;
+    try {
+      const pdfBuffer = await generateInvoicePdf({
+        invoiceNumber,
+        clientName,
+        clientEmail: to,
+        items: Array.isArray(items) ? items : [],
+        amount: Number(amount),
+        issueDate: issueDate || new Date().toISOString(),
+        dueDate: dueDate || new Date().toISOString(),
+        currency,
+        senderName: fromName,
+        senderEmail: fromEmail,
+        senderLogo: userLogo,
+      });
+      pdfAttachment = {
+        filename: `invoice-${invoiceNumber}.pdf`,
+        content: pdfBuffer.toString('base64'),
+      };
+    } catch (pdfErr: any) {
+      console.warn('PDF generation failed, sending without attachment:', pdfErr.message);
+    }
 
     // Send email via Resend API
     const response = await fetch('https://api.resend.com/emails', {
@@ -363,6 +426,7 @@ app.post('/api/send-invoice', async (req, res) => {
         reply_to: fromEmail || undefined,
         subject: `Invoice #${invoiceNumber} from ${fromName || 's8vr'} - $${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
         html: emailHtml,
+        ...(pdfAttachment ? { attachments: [pdfAttachment] } : {}),
       }),
     });
 
@@ -376,8 +440,8 @@ app.post('/api/send-invoice', async (req, res) => {
       });
     }
 
-    // Return access token so frontend can store it with the invoice
-    res.json({ success: true, id: data?.id, accessToken });
+    // Return access token and checkout URL so frontend can store them with the invoice
+    res.json({ success: true, id: data?.id, accessToken, checkoutUrl: paymentLink });
 
   } catch (error: any) {
     console.error('Error sending invoice email:', error);
@@ -521,10 +585,10 @@ app.get('/api/invoice/:id/link', async (req, res) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the invoice with access token
+    // Get the invoice with access token and checkout URL
     const { data, error } = await supabase
       .from('invoices')
-      .select('id, access_token')
+      .select('id, access_token, checkout_url')
       .eq('id', id)
       .single();
 
@@ -532,15 +596,179 @@ app.get('/api/invoice/:id/link', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Invoice not found' });
     }
 
-    // Construct the full payment link
+    // Return Stripe checkout URL if available, otherwise fallback to app link
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const link = `${frontendUrl}/invoice/${data.id}?token=${data.access_token}`;
+    const link = data.checkout_url || `${frontendUrl}/invoice/${data.id}?token=${data.access_token}`;
 
     res.json({ success: true, link });
 
   } catch (error: any) {
     console.error('Error getting payment link:', error);
     res.status(500).json({ success: false, error: 'Failed to get payment link' });
+  }
+});
+
+// Verify Stripe payment status for an invoice (fallback when webhooks aren't configured)
+app.post('/api/invoice/:id/verify-payment', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Stripe not configured' });
+    }
+
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select('id, status, checkout_url')
+      .eq('id', id)
+      .single();
+
+    if (error || !invoice) {
+      return res.status(404).json({ success: false, error: 'Invoice not found' });
+    }
+
+    if (invoice.status === 'paid') {
+      return res.json({ success: true, status: 'paid', alreadyPaid: true });
+    }
+
+    if (!invoice.checkout_url) {
+      return res.status(400).json({ success: false, error: 'No Stripe checkout session for this invoice' });
+    }
+
+    // Extract session ID from Stripe checkout URL (cs_test_xxx or cs_live_xxx)
+    const sessionMatch = invoice.checkout_url.match(/\/(cs_(?:test|live)_\w+)/);
+    if (!sessionMatch) {
+      return res.status(400).json({ success: false, error: 'Cannot parse Stripe session ID from checkout URL' });
+    }
+
+    const sessionId = sessionMatch[1];
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status === 'paid') {
+      await supabase
+        .from('invoices')
+        .update({ status: 'paid', paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      try {
+        await supabase.from('email_logs').insert({
+          invoice_id: id,
+          type: 'paid',
+          message: `Payment of $${((session.amount_total || 0) / 100).toFixed(2)} confirmed via Stripe (manual verify)`,
+        });
+      } catch {} // non-critical
+
+      return res.json({ success: true, status: 'paid' });
+    }
+
+    res.json({ success: true, status: session.payment_status });
+
+  } catch (error: any) {
+    console.error('Error verifying payment:', error);
+    res.status(500).json({ success: false, error: 'Failed to verify payment status' });
+  }
+});
+
+// Download invoice as PDF
+app.get('/api/invoice/:id/pdf', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select(`*, invoice_items(*), clients(*)`)
+      .eq('id', id)
+      .eq('user_id', req.user!.id)
+      .single();
+
+    if (error || !invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('name, email, logo_url, avatar_url')
+      .eq('id', req.user!.id)
+      .single();
+
+    const pdfBuffer = await generateInvoicePdf({
+      invoiceNumber: invoice.invoice_number,
+      clientName: invoice.clients?.name || '',
+      clientEmail: invoice.clients?.email || '',
+      items: (invoice.invoice_items || []).map((i: any) => ({
+        description: i.description,
+        amount: parseFloat(i.amount),
+      })),
+      amount: parseFloat(invoice.amount),
+      issueDate: invoice.issue_date,
+      dueDate: invoice.due_date,
+      currency: invoice.currency,
+      senderName: userProfile?.name,
+      senderEmail: userProfile?.email,
+      senderLogo: userProfile?.logo_url || userProfile?.avatar_url,
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoice_number}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error: any) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Sync payment status for all pending invoices against Stripe
+app.post('/api/invoices/sync-payments', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!stripe) {
+      return res.json({ success: true, updated: [] });
+    }
+
+    const { data: invoices, error } = await supabase
+      .from('invoices')
+      .select('id, invoice_number, checkout_url, amount')
+      .eq('user_id', req.user!.id)
+      .in('status', ['pending', 'overdue'])
+      .not('checkout_url', 'is', null);
+
+    if (error || !invoices || invoices.length === 0) {
+      return res.json({ success: true, updated: [] });
+    }
+
+    const updated: string[] = [];
+
+    for (const invoice of invoices) {
+      try {
+        const sessionMatch = invoice.checkout_url.match(/\/(cs_(?:test|live)_\w+)/);
+        if (!sessionMatch) continue;
+
+        const session = await stripe.checkout.sessions.retrieve(sessionMatch[1]);
+        if (session.payment_status === 'paid') {
+          await supabase
+            .from('invoices')
+            .update({ status: 'paid', paid_at: new Date().toISOString() })
+            .eq('id', invoice.id);
+
+          try {
+            await supabase.from('email_logs').insert({
+              invoice_id: invoice.id,
+              type: 'paid',
+              message: `Payment confirmed via Stripe (auto-sync)`,
+            });
+          } catch {} // non-critical
+
+          updated.push(invoice.id);
+        }
+      } catch {
+        // skip invoices where Stripe lookup fails
+      }
+    }
+
+    res.json({ success: true, updated });
+  } catch (error: any) {
+    console.error('Error syncing payments:', error);
+    res.status(500).json({ success: false, error: 'Failed to sync payments' });
   }
 });
 
@@ -624,6 +852,27 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
             type: 'sent',
             message: `Payment attempt failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`,
           });
+      }
+      break;
+    }
+
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const invoiceId = session.metadata?.invoiceId;
+      if (invoiceId) {
+        const { data, error } = await supabase
+          .from('invoices')
+          .update({ status: 'paid', paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('id', invoiceId)
+          .select()
+          .single();
+        if (!error && data) {
+          await supabase.from('email_logs').insert({
+            invoice_id: data.id,
+            type: 'paid',
+            message: `Payment of $${((session.amount_total || 0) / 100).toFixed(2)} received via Stripe Checkout`,
+          });
+        }
       }
       break;
     }
@@ -1502,6 +1751,83 @@ app.post('/api/feedback', async (req, res) => {
   } catch (error: any) {
     console.error('Error submitting feedback:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ─── Config read/write endpoints ─────────────────────────────────���────────────
+const BACKEND_ENV  = path.resolve(__dirname, '../.env');
+const FRONTEND_ENV = path.resolve(__dirname, '../../.env');
+
+function parseEnvFile(filePath: string): Record<string, string> {
+  if (!fs.existsSync(filePath)) return {};
+  const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+  const result: Record<string, string> = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    result[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
+  }
+  return result;
+}
+
+function writeEnvFile(filePath: string, values: Record<string, string>) {
+  const lines = Object.entries(values).map(([k, v]) => `${k}=${v}`);
+  fs.writeFileSync(filePath, lines.join('\n') + '\n', 'utf8');
+}
+
+app.get('/api/config', (req, res) => {
+  try {
+    const be = parseEnvFile(BACKEND_ENV);
+    const fe = parseEnvFile(FRONTEND_ENV);
+    res.json({
+      supabaseUrl:         be.SUPABASE_URL                 || fe.VITE_SUPABASE_URL        || '',
+      supabaseAnonKey:     fe.VITE_SUPABASE_ANON_KEY       || '',
+      supabaseServiceKey:  be.SUPABASE_SERVICE_ROLE_KEY    || '',
+      databaseUrl:         be.DATABASE_URL                 || '',
+      stripePublishableKey: fe.VITE_STRIPE_PUBLISHABLE_KEY || be.STRIPE_PUBLISHABLE_KEY   || '',
+      stripeSecretKey:     be.STRIPE_SECRET_KEY            || '',
+      stripeWebhookSecret: be.STRIPE_WEBHOOK_SECRET        || '',
+      resendApiKey:        be.RESEND_API_KEY               || '',
+      fromEmail:           be.FROM_EMAIL                   || '',
+      appUrl:              be.FRONTEND_URL                 || '',
+      backendUrl:          fe.VITE_API_URL                 || '',
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/config', (req, res) => {
+  try {
+    const {
+      supabaseUrl, supabaseAnonKey, supabaseServiceKey, databaseUrl,
+      stripePublishableKey, stripeSecretKey, stripeWebhookSecret,
+      resendApiKey, fromEmail, appUrl, backendUrl,
+    } = req.body;
+
+    const be = parseEnvFile(BACKEND_ENV);
+    const fe = parseEnvFile(FRONTEND_ENV);
+
+    if (supabaseUrl)          { be.SUPABASE_URL = supabaseUrl;                        fe.VITE_SUPABASE_URL = supabaseUrl; }
+    if (supabaseAnonKey)      { fe.VITE_SUPABASE_ANON_KEY = supabaseAnonKey; }
+    if (supabaseServiceKey)   { be.SUPABASE_SERVICE_ROLE_KEY = supabaseServiceKey; }
+    if (databaseUrl)          { be.DATABASE_URL = databaseUrl; }
+    if (stripePublishableKey) { be.STRIPE_PUBLISHABLE_KEY = stripePublishableKey;     fe.VITE_STRIPE_PUBLISHABLE_KEY = stripePublishableKey; }
+    if (stripeSecretKey)      { be.STRIPE_SECRET_KEY = stripeSecretKey; }
+    if (stripeWebhookSecret)  { be.STRIPE_WEBHOOK_SECRET = stripeWebhookSecret; }
+    if (resendApiKey)         { be.RESEND_API_KEY = resendApiKey; }
+    if (fromEmail)            { be.FROM_EMAIL = fromEmail; }
+    if (appUrl)               { be.FRONTEND_URL = appUrl; }
+    if (backendUrl)           { fe.VITE_API_URL = backendUrl; }
+
+    writeEnvFile(BACKEND_ENV, be);
+    writeEnvFile(FRONTEND_ENV, fe);
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 

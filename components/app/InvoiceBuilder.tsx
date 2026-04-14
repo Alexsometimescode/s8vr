@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Invoice, InvoiceItem, InvoiceTheme, InvoiceCustomization } from '../../types';
 import { Button, Navbar, Logo } from '../ui/Shared';
 import { Modal, ConfirmModal } from '../ui/Modal';
-import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, LayoutTemplate, Building2, Palette, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText, AlertTriangle, ChevronDown, User, Users, Copy, ArrowUpRight } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Send, Check, Loader2, ShieldCheck, CreditCard, Building2, X, Mail, Bell, Clock, Calendar, AlertCircle, RefreshCw, FileText, AlertTriangle, ChevronDown, User, Users, Copy, ArrowUpRight } from 'lucide-react';
 import { getNextInvoiceNumber } from '../../src/lib/invoices';
+import { supabase } from '../../src/lib/supabase';
 
 // SECURITY: Validation Helper
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -35,31 +36,10 @@ interface InvoiceBuilderProps {
 }
 
 const TEMPLATES: { id: InvoiceTheme; name: string; description: string; items?: InvoiceItem[] }[] = [
-    { id: 'minimal', name: 'Minimal', description: 'Clean whitespace. Pure simplicity.' },
-    {
-      id: 'corporate', name: 'Corporate', description: 'Structured header. Professional serif fonts.',
-      items: [{ id: '1', description: 'Consultation Services', amount: 1500 }, { id: '2', description: 'Implementation Phase', amount: 3500 }]
-    },
-    {
-      id: 'startup', name: 'Startup', description: 'Friendly, geometric, and modern.',
-      items: [{ id: '1', description: 'MVP Development', amount: 5000 }, { id: '2', description: 'User Testing', amount: 1200 }]
-    },
     {
       id: 'agency', name: 'Agency', description: 'Big centered amount. Focus on value.',
       items: [{ id: '1', description: 'Brand Strategy', amount: 4500 }, { id: '2', description: 'Visual Identity', amount: 3000 }]
     },
-    {
-      id: 'creative', name: 'Creative', description: 'Dark mode aesthetic. Bold accents.',
-      items: [{ id: '1', description: 'Brand Identity Design', amount: 4000 }, { id: '2', description: 'Asset Export', amount: 500 }]
-    },
-    {
-      id: 'tech', name: 'Terminal', description: 'Monospace fonts. Developer focused.',
-      items: [{ id: '1', description: 'Backend API Integration', amount: 3200 }, { id: '2', description: 'Server Configuration', amount: 800 }]
-    },
-    { id: 'elegant', name: 'Elegant', description: 'Cream paper, gold accents, refined.' },
-    { id: 'modern', name: 'Modern', description: 'Subtle gradients and soft shadows.' },
-    { id: 'classic', name: 'Classic', description: 'Traditional layout. Double borders.' },
-    { id: 'consultant', name: 'Consultant', description: 'Detailed grid. Clean lines.' }
 ];
 
 // Payment Link Actions Component
@@ -129,10 +109,52 @@ const PaymentLinkActions: React.FC<{ invoiceId: string; isPaid: boolean }> = ({ 
   );
 };
 
-export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void; userProfile?: UserProfile }> = ({ invoice, onClose, userProfile }) => {
+export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void; userProfile?: UserProfile; onRefresh?: () => void }> = ({ invoice, onClose, userProfile, onRefresh }) => {
   // Prevent clicks inside the modal from closing it
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+  };
+
+  const [markingPaid, setMarkingPaid] = React.useState(false);
+  const [downloadingPdf, setDownloadingPdf] = React.useState(false);
+
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${API_URL}/api/invoice/${invoice.id}/pdf`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (!res.ok) throw new Error('Failed to generate PDF');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${invoice.invoiceNumber}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    setMarkingPaid(true);
+    try {
+      await supabase
+        .from('invoices')
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
+        .eq('id', invoice.id);
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (err) {
+      console.error('Mark as paid failed:', err);
+    } finally {
+      setMarkingPaid(false);
+    }
   };
 
   const isPaid = invoice.status === 'paid';
@@ -232,6 +254,28 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void; use
                  {/* Payment Link Actions */}
                  <PaymentLinkActions invoiceId={invoice.id} isPaid={isPaid} />
 
+                 {/* PDF Download + Mark as Paid */}
+                 <div className="flex gap-2">
+                   <button
+                     onClick={handleDownloadPdf}
+                     disabled={downloadingPdf}
+                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-textMain hover:border-textMuted transition-colors disabled:opacity-50"
+                   >
+                     {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                     Download PDF
+                   </button>
+                   {!isPaid && (
+                     <button
+                       onClick={handleMarkPaid}
+                       disabled={markingPaid}
+                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-sm font-medium text-emerald-500 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                     >
+                       {markingPaid ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                       Mark as Paid
+                     </button>
+                   )}
+                 </div>
+
                  {/* Client Details */}
                  <div>
                     <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Client Details</h3>
@@ -281,9 +325,7 @@ export const InvoiceModal: React.FC<{ invoice: Invoice; onClose: () => void; use
 
 
 export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave, userProfile, existingClients = [] }) => {
-  // Step: 'templates' -> 'editor'
-  const [step, setStep] = useState<'templates' | 'editor'>('templates');
-  const [theme, setTheme] = useState<InvoiceTheme>('minimal');
+  const [theme, setTheme] = useState<InvoiceTheme>('agency');
   const [isSending, setIsSending] = useState(false);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -300,7 +342,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     amount: 0,
     remindersEnabled: true,
-    theme: 'minimal',
+    theme: 'agency',
     customization: {
       textColor: '#18181b',
       backgroundColor: '#ffffff',
@@ -365,12 +407,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
     }
   };
 
-  const selectTemplate = (t: typeof TEMPLATES[0]) => {
-    setTheme(t.id);
-    setInvoice({ ...invoice, theme: t.id });
-    setStep('editor');
-  };
-
   const selectClient = (client: ExistingClient) => {
     setSelectedClientId(client.id);
     setInvoice({
@@ -405,79 +441,15 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
     }, 1500);
   };
 
-  // STEP 1: Template Selection (3x3 Grid)
-  if (step === 'templates') {
-    return (
-      <div className="min-h-screen bg-background text-textMain">
-        {/* Header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <button onClick={onCancel} className="flex items-center gap-2 text-textMuted hover:text-textMain transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back</span>
-            </button>
-            <Logo />
-            <div className="w-20" /> {/* Spacer for centering */}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="pt-24 pb-16 px-6">
-          <div className="max-w-5xl mx-auto">
-            {/* Title */}
-            <div className="text-center mb-12">
-              <h1 className="text-3xl font-bold text-textMain mb-3">Choose a Template</h1>
-              <p className="text-textMuted">Select a style for your invoice. You can always change it later.</p>
-            </div>
-
-            {/* 3x3 Template Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {TEMPLATES.map((t) => {
-                const isSelected = theme === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => selectTemplate(t)}
-                    className={`group relative bg-surface border-2 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
-                      isSelected
-                        ? 'border-emerald-500 ring-2 ring-emerald-500/20'
-                        : 'border-border hover:border-textMuted'
-                    }`}
-                  >
-                    <div className="aspect-[4/3] p-4 bg-gradient-to-br from-surfaceHighlight to-surface flex items-center justify-center">
-                      <div className="w-full max-w-[200px] transform scale-[0.6] origin-center">
-                        <MiniInvoicePreview theme={t.id} />
-                      </div>
-                    </div>
-                    <div className="p-4 border-t border-border">
-                      <h3 className="font-semibold text-textMain mb-1">{t.name}</h3>
-                      <p className="text-sm text-textMuted">{t.description}</p>
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-      </div>
-    );
-  }
-
-  // STEP 2: Editor with Live Preview
+  // Editor with Live Preview
   return (
     <div className="min-h-screen bg-background text-textMain flex flex-col">
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
-          <button onClick={() => setStep('templates')} className="flex items-center gap-2 text-textMuted hover:text-textMain transition-colors">
+          <button onClick={onCancel} className="flex items-center gap-2 text-textMuted hover:text-textMain transition-colors">
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium hidden sm:inline">Templates</span>
+            <span className="font-medium hidden sm:inline">Back</span>
           </button>
           <Logo />
           <div className="flex items-center gap-2">
@@ -656,7 +628,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
               {/* Total */}
               <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
                 <span className="text-textMuted font-medium">Total</span>
-                <span className="text-2xl font-bold text-textMain">${total.toLocaleString()}</span>
+                <span className="text-2xl font-bold text-textMain">{getCurrencySymbol(invoice.currency)}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
 
@@ -689,28 +661,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Template Selector (compact) */}
-            <div>
-              <h2 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-4 flex items-center gap-2">
-                <LayoutTemplate className="w-4 h-4" /> Template
-              </h2>
-              <button
-                onClick={() => setStep('templates')}
-                className="w-full p-4 bg-background border border-border rounded-xl flex items-center justify-between hover:border-textMuted transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-surfaceHighlight rounded-lg flex items-center justify-center">
-                    <Palette className="w-5 h-5 text-textMuted" />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-medium text-textMain">{TEMPLATES.find(t => t.id === theme)?.name}</div>
-                    <div className="text-xs text-textMuted">{TEMPLATES.find(t => t.id === theme)?.description}</div>
-                  </div>
-                </div>
-                <span className="text-sm text-emerald-500">Change</span>
-              </button>
             </div>
 
             {/* Validation Status */}
@@ -763,161 +713,6 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({ onCancel, onSave
   );
 };
 
-// Mini Invoice Preview for Template Selection - Shows actual template style
-const MiniInvoicePreview: React.FC<{ theme: InvoiceTheme }> = ({ theme }) => {
-  // Each template has its own unique visual design
-  switch(theme) {
-    case 'minimal':
-      return (
-        <div className="bg-white rounded-lg p-3 shadow-lg text-[10px]">
-          <div className="flex justify-between items-start mb-2">
-            <div className="w-6 h-6 bg-emerald-500 rounded" />
-            <div className="text-right text-gray-400 text-[8px]">INV-001</div>
-          </div>
-          <div className="text-gray-900 font-semibold mb-1">Acme Corp</div>
-          <div className="text-xl font-bold text-gray-900 mb-2">$2,500</div>
-          <div className="border-t border-gray-100 pt-2 space-y-1">
-            <div className="flex justify-between text-gray-500">
-              <span>Design Services</span>
-              <span>$2,500</span>
-            </div>
-          </div>
-        </div>
-      );
-    
-    case 'corporate':
-      return (
-        <div className="bg-slate-50 rounded-lg p-3 shadow-lg text-[10px] border border-slate-200">
-          <div className="border-b-2 border-slate-800 pb-2 mb-2">
-            <div className="font-serif font-bold text-slate-800 text-sm">INVOICE</div>
-            <div className="text-slate-500 text-[8px]">Professional Services</div>
-          </div>
-          <div className="flex justify-between mb-2">
-            <div className="text-slate-700">Client Co.</div>
-            <div className="font-bold text-slate-900">$4,200</div>
-          </div>
-          <div className="bg-slate-100 p-1 rounded text-[8px] text-slate-600">
-            Consulting • Strategy • Implementation
-          </div>
-        </div>
-      );
-    
-    case 'startup':
-      return (
-        <div className="bg-white rounded-xl p-3 shadow-lg text-[10px]">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-5 bg-blue-500 rounded-lg" />
-            <span className="font-bold text-gray-900">startup.io</span>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-2 mb-2">
-            <div className="text-blue-600 text-[8px] font-medium">AMOUNT DUE</div>
-            <div className="text-xl font-bold text-blue-600">$3,800</div>
-          </div>
-          <div className="text-gray-500 text-[8px]">MVP Development Package</div>
-        </div>
-      );
-    
-    case 'agency':
-      return (
-        <div className="bg-white rounded-lg p-3 shadow-lg text-[10px] text-center">
-          <div className="w-8 h-8 bg-black rounded-full mx-auto mb-2" />
-          <div className="text-[8px] text-gray-400 uppercase tracking-widest mb-1">Invoice</div>
-          <div className="text-3xl font-black text-black mb-2">$7,500</div>
-          <div className="text-gray-500 text-[8px]">Brand Strategy & Identity</div>
-        </div>
-      );
-    
-    case 'creative':
-      return (
-        <div className="bg-zinc-900 rounded-lg p-3 shadow-lg text-[10px]">
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-white font-bold">STUDIO</div>
-            <div className="text-zinc-500 text-[8px]">#2024</div>
-          </div>
-          <div className="text-2xl font-bold text-white mb-2">$4,500</div>
-          <div className="flex gap-1">
-            <span className="px-1.5 py-0.5 bg-white text-black rounded text-[8px]">Design</span>
-            <span className="px-1.5 py-0.5 bg-zinc-700 text-white rounded text-[8px]">Motion</span>
-          </div>
-        </div>
-      );
-    
-    case 'tech':
-      return (
-        <div className="bg-zinc-950 rounded-lg p-3 shadow-lg text-[10px] font-mono">
-          <div className="text-emerald-500 text-[8px] mb-1">$ invoice --generate</div>
-          <div className="text-emerald-400 mb-2">
-            <span className="text-zinc-500">amount:</span> $3,200
-          </div>
-          <div className="text-zinc-500 text-[8px]">
-            <div>client: "TechCorp"</div>
-            <div>service: "API Integration"</div>
-          </div>
-        </div>
-      );
-    
-    case 'elegant':
-      return (
-        <div className="bg-amber-50 rounded-lg p-3 shadow-lg text-[10px] border border-amber-200">
-          <div className="text-center border-b border-amber-300 pb-2 mb-2">
-            <div className="text-amber-800 font-serif text-sm">✦ INVOICE ✦</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-serif text-amber-900">$5,000</div>
-            <div className="text-amber-600 text-[8px] mt-1">Luxury Consulting</div>
-          </div>
-        </div>
-      );
-    
-    case 'modern':
-      return (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 shadow-lg text-[10px]">
-          <div className="flex justify-between items-start mb-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg" />
-            <div className="text-gray-400 text-[8px]">2024-001</div>
-          </div>
-          <div className="text-gray-800 font-medium mb-1">Modern Co.</div>
-          <div className="text-xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">$2,800</div>
-        </div>
-      );
-    
-    case 'classic':
-      return (
-        <div className="bg-stone-100 rounded-lg p-3 shadow-lg text-[10px] border-2 border-stone-300">
-          <div className="border-b-2 border-double border-stone-400 pb-1 mb-2">
-            <div className="font-serif font-bold text-stone-800 text-center">INVOICE</div>
-          </div>
-          <div className="text-center">
-            <div className="text-stone-600 text-[8px]">Amount Due</div>
-            <div className="text-xl font-bold text-stone-800">$1,800</div>
-          </div>
-        </div>
-      );
-    
-    case 'consultant':
-      return (
-        <div className="bg-white rounded-lg p-3 shadow-lg text-[10px] border-l-4 border-teal-500">
-          <div className="flex justify-between items-center mb-2">
-            <div className="font-bold text-gray-800">Consultant</div>
-            <div className="text-teal-500 text-[8px]">INV-001</div>
-          </div>
-          <div className="grid grid-cols-2 gap-1 text-[8px] text-gray-500 mb-2">
-            <div>Hours: 40</div>
-            <div>Rate: $150/hr</div>
-          </div>
-          <div className="text-right font-bold text-teal-600">$6,000</div>
-        </div>
-      );
-    
-    default:
-      return (
-        <div className="bg-white rounded-lg p-3 shadow-lg text-[10px]">
-          <div className="text-gray-900 font-bold mb-2">Invoice</div>
-          <div className="text-xl font-bold text-emerald-500">$1,500</div>
-        </div>
-      );
-  }
-};
 
 interface InvoicePreviewProps {
   data: Invoice;
@@ -935,10 +730,16 @@ const fontFamilyMap: Record<string, string> = {
   'space-grotesk': "'Space Grotesk', -apple-system, sans-serif"
 };
 
+const getCurrencySymbol = (currency?: string): string => {
+  const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'CA$', AUD: 'A$', CHF: 'CHF ', NZD: 'NZ$' };
+  return symbols[(currency || 'USD').toUpperCase()] ?? ((currency || 'USD').toUpperCase() + ' ');
+};
+
 export const InvoicePreviewCard: React.FC<InvoicePreviewProps> = ({ data, minimal, userProfile }) => {
     const itemsTotal = data.items.reduce((sum, item) => sum + (item.amount || 0), 0);
     const total = itemsTotal > 0 ? itemsTotal : (data.amount || 0);
     const theme = data.theme || 'minimal';
+    const currencySymbol = getCurrencySymbol(data.currency);
     const customization = data.customization;
     
     // Check if custom styles should be applied
@@ -1092,7 +893,7 @@ export const InvoicePreviewCard: React.FC<InvoicePreviewProps> = ({ data, minima
                 {/* Center Amount */}
                 <div className="text-center mb-8">
                     <div className={`text-xs font-bold uppercase tracking-widest mb-4 ${styles.mutedText}`}>Amount Due</div>
-                    <div className={`text-6xl font-bold tracking-tight ${styles.headerText}`}>${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                    <div className={`text-6xl font-bold tracking-tight ${styles.headerText}`}>{currencySymbol}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                 </div>
 
                 {/* Billed To - CLIENT Info */}
@@ -1108,7 +909,7 @@ export const InvoicePreviewCard: React.FC<InvoicePreviewProps> = ({ data, minima
                         {data.items.map((item, i) => (
                             <div key={i} className="flex justify-between items-center py-2">
                                 <span className={`font-medium ${styles.font}`}>{item.description || 'Service'}</span>
-                                <span className={`${styles.mutedText} font-mono`}>${item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                <span className={`${styles.mutedText} font-mono`}>{currencySymbol}{item.amount?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                             </div>
                         ))}
                     </div>

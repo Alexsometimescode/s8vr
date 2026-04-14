@@ -14,6 +14,7 @@ export interface EmailTemplateData {
   daysOverdue?: number;
   reminderCount?: number;
   reportLink?: string;
+  currency?: string;
 }
 
 // Font stack for email clients
@@ -27,6 +28,7 @@ const getCleanInvoiceHtml = (data: {
   recipientName: string;
   amount: number;
   dueDate: string;
+  issueDate?: string;
   dueDaysText?: string;
   paymentLink: string;
   reportLink?: string;
@@ -35,11 +37,35 @@ const getCleanInvoiceHtml = (data: {
   customMessage?: string;
   isReminder?: boolean;
   reminderCount?: number;
+  items?: { description: string; amount: number }[];
+  currency?: string;
 }) => {
   const statusBadge = data.statusBadge || '';
   const statusColor = data.statusColor || '#f59e0b';
   const reportLink = data.reportLink || `https://s8vr.app/report/${data.invoiceNumber}`;
-  
+  const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'CA$', AUD: 'A$', CHF: 'CHF ', NZD: 'NZ$' };
+  const currencySymbol = data.currency ? (CURRENCY_SYMBOLS[(data.currency).toUpperCase()] ?? (data.currency.toUpperCase() + ' ')) : '$';
+
+  const lineItemsHtml = data.items && data.items.length > 0 ? `
+      <!-- Line Items -->
+      <div style="padding: 0 32px 24px 32px;">
+        <p style="margin: 0 0 12px 0; font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 1.5px;">Services</p>
+        <div style="background-color: #27272a; border-radius: 12px; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse;">
+            ${data.items.map((item, i) => `
+            <tr style="${i < data.items!.length - 1 ? 'border-bottom: 1px solid #3f3f46;' : ''}">
+              <td style="padding: 14px 16px; font-size: 14px; color: #e4e4e7;">${item.description}</td>
+              <td style="padding: 14px 16px; font-size: 14px; color: #ffffff; font-weight: 600; text-align: right; white-space: nowrap;">${currencySymbol}${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            </tr>`).join('')}
+            ${data.items.length > 1 ? `
+            <tr style="border-top: 1px solid #52525b;">
+              <td style="padding: 14px 16px; font-size: 14px; font-weight: 600; color: #a1a1aa;">Total</td>
+              <td style="padding: 14px 16px; font-size: 15px; font-weight: 700; color: #10b981; text-align: right; white-space: nowrap;">${currencySymbol}${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            </tr>` : ''}
+          </table>
+        </div>
+      </div>` : '';
+
   return `
 <!DOCTYPE html>
 <html>
@@ -49,11 +75,11 @@ const getCleanInvoiceHtml = (data: {
   <title>Invoice #${data.invoiceNumber} from ${data.senderName}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #09090b; font-family: ${fontStack}; -webkit-font-smoothing: antialiased;">
-  <div style="max-width: 480px; margin: 0 auto; padding: 48px 24px;">
-    
+  <div style="max-width: 520px; margin: 0 auto; padding: 48px 24px;">
+
     <!-- Main Card -->
     <div style="background-color: #18181b; border-radius: 16px; border: 1px solid #27272a; overflow: hidden;">
-      
+
       <!-- Header - Name and email only (no photo) -->
       <div style="padding: 32px 32px 24px 32px; border-bottom: 1px solid #27272a;">
         <p style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${data.senderName}</p>
@@ -67,42 +93,47 @@ const getCleanInvoiceHtml = (data: {
       </div>
       ` : ''}
 
-      <!-- Amount -->
-      <div style="padding: 32px; text-align: center;">
-        <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 1.5px;">Amount Due</p>
-        <p style="margin: 0; font-size: 48px; font-weight: 700; color: #ffffff; letter-spacing: -1px;">$${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-        <p style="margin: 16px 0 0 0; font-size: 14px; color: #71717a;">Due ${data.dueDate}</p>
+      <!-- Invoice Meta -->
+      <div style="padding: 24px 32px; border-bottom: 1px solid #27272a;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; font-size: 13px; color: #71717a; width: 50%;">Invoice</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">#${data.invoiceNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; font-size: 13px; color: #71717a;">To</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${data.recipientName}</td>
+          </tr>
+          ${data.issueDate ? `
+          <tr>
+            <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Issued</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${data.issueDate}</td>
+          </tr>` : ''}
+          <tr>
+            <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Due</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${data.dueDaysText || data.dueDate}</td>
+          </tr>
+          ${statusBadge ? `
+          <tr>
+            <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Status</td>
+            <td style="padding: 6px 0; font-size: 13px; text-align: right;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: ${statusColor}20; color: ${statusColor};">${statusBadge}</span>
+            </td>
+          </tr>
+          ` : ''}
+        </table>
       </div>
 
-      <!-- Invoice Details -->
-      <div style="padding: 0 32px 24px 32px;">
-        <div style="background-color: #27272a; border-radius: 12px; padding: 16px;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px 0; font-size: 14px; color: #71717a;">Invoice</td>
-              <td style="padding: 8px 0; font-size: 14px; color: #ffffff; text-align: right; font-weight: 500;">#${data.invoiceNumber}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; font-size: 14px; color: #71717a;">To</td>
-              <td style="padding: 8px 0; font-size: 14px; color: #ffffff; text-align: right; font-weight: 500;">${data.recipientName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; font-size: 14px; color: #71717a;">Due</td>
-              <td style="padding: 8px 0; font-size: 14px; color: #ffffff; text-align: right; font-weight: 500;">${data.dueDaysText || data.dueDate}</td>
-            </tr>
-            ${statusBadge ? `
-            <tr>
-              <td style="padding: 8px 0; font-size: 14px; color: #71717a;">Status</td>
-              <td style="padding: 8px 0; font-size: 14px; text-align: right;">
-                <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: ${statusColor}20; color: ${statusColor};">${statusBadge}</span>
-              </td>
-            </tr>
-            ` : ''}
-          </table>
-        </div>
+      ${lineItemsHtml}
+
+      <!-- Amount Due -->
+      <div style="padding: 28px 32px; text-align: center; border-top: 1px solid #27272a;">
+        <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 1.5px;">Amount Due</p>
+        <p style="margin: 0; font-size: 44px; font-weight: 700; color: #ffffff; letter-spacing: -1px;">${currencySymbol}${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+        <p style="margin: 10px 0 0 0; font-size: 13px; color: #71717a;">Due ${data.dueDate}</p>
       </div>
-      
-      <!-- Pay Button (smaller) -->
+
+      <!-- Pay Button -->
       <div style="padding: 0 32px 32px 32px;">
         <a href="${data.paymentLink}" style="display: block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center;">Pay Invoice</a>
       </div>
@@ -130,8 +161,10 @@ const getCleanInvoiceHtml = (data: {
 
 // Invoice Sent Email Template (for clients)
 export const getInvoiceEmailTemplate = (data: EmailTemplateData & { items?: { description: string; amount: number }[]; issueDate?: string }): { subject: string; html: string } => {
-  const subject = `Invoice #${data.invoiceNumber} from ${data.senderName} - $${Number(data.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-  
+  const INVOICE_CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'CA$', AUD: 'A$', CHF: 'CHF ', NZD: 'NZ$' };
+  const invoiceCurrencySymbol = data.currency ? (INVOICE_CURRENCY_SYMBOLS[(data.currency).toUpperCase()] ?? (data.currency.toUpperCase() + ' ')) : '$';
+  const subject = `Invoice #${data.invoiceNumber} from ${data.senderName} - ${invoiceCurrencySymbol}${Number(data.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
   // Calculate days until due
   const daysUntilDue = data.dueDate 
     ? Math.ceil((new Date(data.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -146,9 +179,12 @@ export const getInvoiceEmailTemplate = (data: EmailTemplateData & { items?: { de
     recipientName: data.recipientName,
     amount: Number(data.amount),
     dueDate: data.dueDate || 'Upon Receipt',
+    issueDate: data.issueDate,
     dueDaysText: dueDaysText,
     paymentLink: data.paymentLink || '',
     reportLink: data.reportLink,
+    items: data.items,
+    currency: data.currency,
   });
 
   return { subject, html };

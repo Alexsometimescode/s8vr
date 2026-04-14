@@ -61,6 +61,7 @@ export interface Invoice {
   reminderTime?: string; // HH:MM 24h format
   logs?: EmailLog[];
   customization?: InvoiceCustomization;
+  checkoutUrl?: string;
 }
 
-export type ViewState = 'landing' | 'dashboard' | 'create-invoice' | 'client-view' | 'public-invoice' | 'admin';
+export type ViewState = 'landing' | 'dashboard' | 'create-invoice' | 'client-view' | 'admin';

@@ -19,6 +19,7 @@ interface SendInvoiceEmailParams {
   userLogo?: string;
   isPremium: boolean;
   invoiceId: string;
+  currency?: string;
 }
 
 /**
@@ -26,7 +27,7 @@ interface SendInvoiceEmailParams {
  * @param params - Email parameters including recipient, invoice details, and sender info
  * @returns Object with success status, email ID, and access token for the invoice
  */
-export const sendInvoiceEmail = async (params: SendInvoiceEmailParams): Promise<{ success: boolean; id?: string; accessToken?: string; error?: string }> => {
+export const sendInvoiceEmail = async (params: SendInvoiceEmailParams): Promise<{ success: boolean; id?: string; accessToken?: string; checkoutUrl?: string; error?: string }> => {
   try {
     const response = await fetch(`${API_URL}/api/send-invoice`, {
       method: 'POST',
@@ -42,8 +43,7 @@ export const sendInvoiceEmail = async (params: SendInvoiceEmailParams): Promise<
       throw new Error(data.error || 'Failed to send invoice email');
     }
 
-    // Return accessToken so it can be stored with the invoice
-    return { success: true, id: data.id, accessToken: data.accessToken };
+    return { success: true, id: data.id, accessToken: data.accessToken, checkoutUrl: data.checkoutUrl };
   } catch (error: any) {
     console.error('Error sending invoice email:', error);
     return { success: false, error: error.message || 'Failed to send email' };

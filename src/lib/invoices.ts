@@ -99,11 +99,16 @@ export const fetchInvoices = async (userId: string): Promise<Invoice[]> => {
     dueDate: inv.due_date,
     amount: parseFloat(inv.amount),
     currency: inv.currency || 'USD',
-    remindersEnabled: inv.reminders_enabled,
+    remindersEnabled: inv.reminders_enabled === true,
+    reminderFrequency: inv.reminder_frequency || 'weekly',
+    reminderCustomInterval: inv.reminder_custom_interval || 3,
+    reminderTone: inv.reminder_tone || 'friendly',
+    reminderTime: inv.reminder_time || '09:00',
     sentAt: inv.sent_at,
     paidAt: inv.paid_at,
     theme: inv.theme,
-    logs: [], // Will fetch separately if needed
+    checkoutUrl: inv.checkout_url || undefined,
+    logs: [],
   }));
 };
 
@@ -173,7 +178,7 @@ export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName:
       issue_date: invoice.issueDate,
       due_date: invoice.dueDate,
       amount: invoice.amount || invoice.items.reduce((sum, item) => sum + item.amount, 0),
-      reminders_enabled: invoice.remindersEnabled ?? true,
+      reminders_enabled: invoice.remindersEnabled === true,
       theme: invoice.theme,
       currency: invoiceCurrency.toLowerCase(), // Store in lowercase for Stripe compatibility
     })
@@ -219,6 +224,7 @@ export const updateInvoice = async (invoiceId: string, updates: Partial<Invoice 
   if (updates.paidAt !== undefined) updateData.paid_at = updates.paidAt;
   if (updates.sentAt !== undefined) updateData.sent_at = updates.sentAt;
   if (updates.access_token !== undefined) updateData.access_token = updates.access_token;
+  if ((updates as any).checkoutUrl !== undefined) updateData.checkout_url = (updates as any).checkoutUrl;
 
   const { error } = await supabase
     .from('invoices')

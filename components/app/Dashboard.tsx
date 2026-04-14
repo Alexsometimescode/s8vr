@@ -16,6 +16,11 @@ import { Edit2 } from 'lucide-react';
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const sanitizeInput = (input: string) => input.replace(/[<>]/g, ''); // Basic strip to prevent XSS in demo
 
+const getCurrencySymbol = (currency?: string): string => {
+  const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'CA$', AUD: 'A$', CHF: 'CHF ', NZD: 'NZ$' };
+  return symbols[(currency || 'USD').toUpperCase()] ?? ((currency || 'USD').toUpperCase() + ' ');
+};
+
 interface DashboardProps {
   invoices: Invoice[];
   onLogout: () => void;
@@ -112,7 +117,7 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
         <div className="flex items-center gap-2 relative">
             {/* Amount & Status - Slide Left on Hover (Desktop Only) */}
             <div className="flex items-center gap-3 transition-transform duration-300 md:group-hover:-translate-x-28">
-                <div className="font-bold font-mono text-sm text-textMain" style={{ fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif' }}>${invoice.amount.toLocaleString()}</div>
+                <div className="font-bold font-mono text-sm text-textMain" style={{ fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif' }}>{getCurrencySymbol(invoice.currency)}{invoice.amount.toLocaleString()}</div>
                 
                 {/* Status Badge - Days Only */}
                 {isPaid ? (
@@ -155,29 +160,33 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
                             className="absolute right-0 top-10 bg-surface border border-border rounded-lg shadow-2xl min-w-[160px] overflow-hidden"
                             style={{ zIndex: 10002 }}
                         >
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(window.location.origin + '/invoice/' + invoice.id);
-                                    if (onCopy) onCopy();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full px-4 py-3 text-left text-sm text-textMain hover:bg-surfaceHighlight flex items-center gap-3 transition-colors"
-                            >
-                                <Copy className="w-4 h-4 text-textMuted" />
-                                Copy payment link
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onClick();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full px-4 py-3 text-left text-sm text-textMain hover:bg-surfaceHighlight flex items-center gap-3 transition-colors"
-                            >
-                                <ArrowUpRight className="w-4 h-4 text-textMuted" />
-                                Open invoice
-                            </button>
+                            {invoice.checkoutUrl && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(invoice.checkoutUrl!);
+                                        if (onCopy) onCopy();
+                                        setMenuOpen(false);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-sm text-textMain hover:bg-surfaceHighlight flex items-center gap-3 transition-colors"
+                                >
+                                    <Copy className="w-4 h-4 text-textMuted" />
+                                    Copy payment link
+                                </button>
+                            )}
+                            {invoice.checkoutUrl && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(invoice.checkoutUrl!, '_blank');
+                                        setMenuOpen(false);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-sm text-textMain hover:bg-surfaceHighlight flex items-center gap-3 transition-colors"
+                                >
+                                    <ArrowUpRight className="w-4 h-4 text-textMuted" />
+                                    Pay on Stripe
+                                </button>
+                            )}
                             {onDelete && (
                                 <button
                                     onClick={(e) => {
@@ -198,12 +207,13 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
 
             {/* Desktop: Action Buttons - Slide In from Right on Hover */}
             <div className="hidden md:flex absolute right-0 gap-1 translate-x-36 opacity-0 md:group-hover:translate-x-0 md:group-hover:opacity-100 transition-all duration-300 ml-4 z-10">
+                {invoice.checkoutUrl && (
                 <div className="relative group/copy">
                     <button
                         className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border hover:bg-surfaceHighlight hover:border-textMuted transition-all"
-                        onClick={(e) => { 
-                            e.stopPropagation(); 
-                            navigator.clipboard.writeText(window.location.origin + '/invoice/' + invoice.id);
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(invoice.checkoutUrl!);
                             if (onCopy) onCopy();
                         }}
                         title="Copy payment link"
@@ -215,19 +225,22 @@ const InvoiceListItem: React.FC<{ invoice: Invoice; onClick: () => void; onDelet
                         <div className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-r border-b border-border rotate-45" />
                     </div>
                 </div>
+                )}
+                {invoice.checkoutUrl && (
                 <div className="relative group/open">
                     <button
                         className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border hover:bg-surfaceHighlight hover:border-textMuted transition-all"
-                        onClick={(e) => { e.stopPropagation(); onClick(); }}
-                        title="Open invoice"
+                        onClick={(e) => { e.stopPropagation(); window.open(invoice.checkoutUrl!, '_blank'); }}
+                        title="Pay on Stripe"
                     >
                         <ArrowUpRight className="w-4 h-4 text-textMuted" />
                     </button>
                     <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-surface border border-border text-textMain text-xs font-medium rounded opacity-0 group-hover/open:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl max-w-[200px]">
-                        Open invoice
+                        Pay on Stripe
                         <div className="absolute left-full top-1/2 -translate-y-1/2 -translate-x-[5px] w-2 h-2 bg-surface border-r border-b border-border rotate-45" />
                     </div>
                 </div>
+                )}
                 {onDelete && (
                     <button
                         className="h-8 w-8 rounded-full flex items-center justify-center bg-surface border border-border text-red-500 hover:bg-red-500/10 hover:border-red-500/30 transition-all"
@@ -320,6 +333,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   const [clientHasChanges, setClientHasChanges] = useState(false);
   const [originalClientData, setOriginalClientData] = useState<any | null>(null);
   const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', company: '', email: '', phone: '', address: '' });
   const [addingClient, setAddingClient] = useState(false);
 
@@ -367,6 +381,29 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
     }
   }, [userProfile]);
 
+  // Sync payment status with Stripe on load and every 2 minutes
+  useEffect(() => {
+    const syncPayments = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${API_URL}/api/invoices/sync-payments`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const data = await res.json();
+        if (data.updated?.length > 0 && onRefresh) onRefresh();
+      } catch {
+        // silent — polling should never surface errors to the user
+      }
+    };
+
+    syncPayments();
+    const interval = setInterval(syncPayments, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Export CSV function for reports
   const handleExportCSV = async () => {
     setExporting(true);
@@ -378,7 +415,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
         inv.clientName || 'N/A',
         new Date(inv.issueDate).toLocaleDateString(),
         inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A',
-        `$${inv.amount.toFixed(2)}`,
+        `${getCurrencySymbol(inv.currency)}${inv.amount.toFixed(2)}`,
         inv.status || 'pending',
       ]);
       
@@ -590,16 +627,16 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   // Reminders State
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [reminderConfig, setReminderConfig] = useState<{
-      freq: ReminderFrequency, 
+      freq: ReminderFrequency,
       customInterval: number,
-      tone: ReminderTone, 
+      tone: ReminderTone,
       enabled: boolean,
       time: string
   }>({
       freq: 'weekly',
       customInterval: 3,
       tone: 'friendly',
-      enabled: true,
+      enabled: false,
       time: '09:00'
   });
 
@@ -666,7 +703,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
           freq: invoice.reminderFrequency || 'weekly',
           customInterval: invoice.reminderCustomInterval || 3,
           tone: invoice.reminderTone || 'friendly',
-          enabled: invoice.remindersEnabled,
+          enabled: invoice.remindersEnabled === true,
           time: invoice.reminderTime || '09:00'
       });
   };
@@ -1177,19 +1214,19 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl shadow-black/20 hover:border-white/20 transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
                             <div className="relative z-10">
-                                <div className="text-[32px] font-bold text-orange-400 tracking-tight mb-1 border-none">${totalDue.toLocaleString()}</div>
+                                <div className="text-[32px] font-bold text-orange-400 tracking-tight mb-1 border-none">{getCurrencySymbol(userProfile?.currency)}{totalDue.toLocaleString()}</div>
                                 <div className="text-textMuted text-xs font-medium">Total outstanding</div>
                             </div>
                         </div>
                         <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl shadow-black/20 hover:border-white/20 transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
                             <div className="relative z-10">
-                                <div className="text-[32px] font-bold text-red-400 tracking-tight mb-1">${totalOverdue.toLocaleString()}</div>
+                                <div className="text-[32px] font-bold text-red-400 tracking-tight mb-1">{getCurrencySymbol(userProfile?.currency)}{totalOverdue.toLocaleString()}</div>
                                 <div className="text-textMuted text-xs font-medium">Overdue amount</div>
                             </div>
                         </div>
                         <div className="relative bg-gradient-to-br from-surface/20 to-surface/10 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl shadow-black/20 hover:border-white/20 transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:pointer-events-none">
                             <div className="relative z-10">
-                                <div className="text-[32px] font-bold text-emerald-400 tracking-tight mb-1 border-none">${totalCollected.toLocaleString()}</div>
+                                <div className="text-[32px] font-bold text-emerald-400 tracking-tight mb-1 border-none">{getCurrencySymbol(userProfile?.currency)}{totalCollected.toLocaleString()}</div>
                                 <div className="text-textMuted text-xs font-medium">Collected</div>
                                 <div className="md:hidden mt-4">
                                     <Button onClick={onCreate} icon={<Plus className="w-4 h-4"/>} size="sm">New</Button>
@@ -1362,7 +1399,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                         <div className="text-xs font-mono bg-background px-1.5 py-0.5 rounded text-textMuted border border-border">#{invoice.invoiceNumber}</div>
                                     </div>
                                     <div className="flex justify-between items-center text-xs">
-                                        <div className="text-textMuted">${invoice.amount.toLocaleString()}</div>
+                                        <div className="text-textMuted">{getCurrencySymbol(invoice.currency)}{invoice.amount.toLocaleString()}</div>
                                         {invoice.remindersEnabled ? (
                                             <div className="flex items-center gap-1 text-emerald-500"><Bell className="w-3 h-3" /> On</div>
                                         ) : (
@@ -1671,7 +1708,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 <div className="relative z-10">
                                     <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Total Revenue</div>
                                     <div className="text-[32px] font-medium text-[#10b981]">
-                                        ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {getCurrencySymbol(userProfile?.currency)}{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                     <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'paid').length} paid invoices</div>
                                 </div>
@@ -1680,7 +1717,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 <div className="relative z-10">
                                     <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Pending</div>
                                     <div className="text-[32px] font-medium text-yellow-400">
-                                        ${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {getCurrencySymbol(userProfile?.currency)}{pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                     <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'pending').length} pending</div>
                                 </div>
@@ -1689,7 +1726,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 <div className="relative z-10">
                                     <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Overdue</div>
                                     <div className="text-[32px] font-medium text-red-400">
-                                        ${overdueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {getCurrencySymbol(userProfile?.currency)}{overdueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                     <div className="text-xs text-textMuted mt-1">{reportInvoices.filter(i => i.status === 'overdue').length} overdue</div>
                                 </div>
@@ -1698,7 +1735,7 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                 <div className="relative z-10">
                                     <div className="text-textMuted text-xs font-bold uppercase tracking-wider mb-2">Avg Invoice</div>
                                     <div className="text-[32px] font-medium text-textMain">
-                                        ${avgInvoiceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {getCurrencySymbol(userProfile?.currency)}{avgInvoiceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                     <div className="text-xs text-textMuted mt-1">{reportInvoices.length} total invoices</div>
                                 </div>
@@ -1878,13 +1915,10 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText('s8vr config').catch(() => {});
-                                        showToast('success', 'Copied!', 'Run "s8vr config" in your terminal to update credentials');
-                                    }}
+                                    onClick={() => setShowConfigModal(true)}
                                     className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 text-sm font-medium transition-colors border border-emerald-500/20"
                                 >
-                                    s8vr config
+                                    Edit
                                 </button>
                             </div>
                         </div>
@@ -2230,6 +2264,176 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
                ))}
            </div>
        )}
+      {/* Config Modal */}
+      {showConfigModal && (
+        <ConfigModal
+          onClose={() => setShowConfigModal(false)}
+          onSaved={() => { showToast('success', 'Saved', 'Configuration updated. Restart the app to apply changes.'); setShowConfigModal(false); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ─── Config Modal ─────────────────────────────────────────────────────────────
+interface ConfigField { key: string; label: string; secret?: boolean; placeholder?: string; }
+
+const CONFIG_FIELDS: { section: string; fields: ConfigField[]; note?: string }[] = [
+  { section: 'Supabase', fields: [
+    { key: 'supabaseUrl',        label: 'Project URL',        placeholder: 'https://xxxx.supabase.co' },
+    { key: 'supabaseAnonKey',    label: 'Anon Key',           secret: true },
+    { key: 'supabaseServiceKey', label: 'Service Role Key',   secret: true },
+    { key: 'databaseUrl',        label: 'Database URL',       secret: true, placeholder: 'postgresql://...' },
+  ]},
+  { section: 'Stripe', fields: [
+    { key: 'stripePublishableKey', label: 'Publishable Key',  placeholder: 'pk_live_...' },
+    { key: 'stripeSecretKey',      label: 'Secret Key',       secret: true, placeholder: 'sk_live_...' },
+    { key: 'stripeWebhookSecret',  label: 'Webhook Secret',   secret: true, placeholder: 'whsec_... (optional)' },
+  ], note: 'To send clients automatic payment receipts, enable receipt emails in your Stripe Dashboard → Settings → Emails → Successful payments.' },
+  { section: 'Email', fields: [
+    { key: 'resendApiKey', label: 'Resend API Key', secret: true, placeholder: 're_...' },
+    { key: 'fromEmail',    label: 'From Email',     placeholder: 'invoices@yourdomain.com' },
+  ]},
+  { section: 'App', fields: [
+    { key: 'appUrl',     label: 'App URL',     placeholder: 'http://localhost:3000' },
+    { key: 'backendUrl', label: 'Backend URL', placeholder: 'http://localhost:3001' },
+  ]},
+];
+
+const ConfigModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ onClose, onSaved }) => {
+  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+  const [values, setValues] = React.useState<Record<string, string>>({});
+  const [shown, setShown] = React.useState<Record<string, boolean>>({});
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [backendOffline, setBackendOffline] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/config`);
+        if (!res.ok) throw new Error('backend_offline');
+        setValues(await res.json());
+      } catch {
+        setBackendOffline(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const [confirmSave, setConfirmSave] = React.useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError('');
+    setConfirmSave(false);
+    try {
+      const res = await fetch(`${apiUrl}/api/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+      onSaved();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-textMain">Edit Configuration</h2>
+            <p className="text-sm text-textMuted mt-0.5">Changes are written to your .env files</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-surfaceHighlight text-textMuted hover:text-textMain transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-textMuted">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading current config...
+            </div>
+          ) : (
+            <>
+              {backendOffline && (
+                <div className="text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+                  Backend not reachable — current values couldn't be loaded. Enter new values below to overwrite your .env files.
+                </div>
+              )}
+              {CONFIG_FIELDS.map(({ section, fields, note }) => (
+                <div key={section}>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-textMuted mb-3">{section}</h3>
+                  <div className="space-y-3">
+                    {fields.map(({ key, label, secret, placeholder }) => (
+                      <div key={key}>
+                        <label className="block text-sm font-medium text-textMain mb-1">{label}</label>
+                        <div className="relative">
+                          <input
+                            type={secret && !shown[key] ? 'password' : 'text'}
+                            value={values[key] || ''}
+                            onChange={e => setValues(v => ({ ...v, [key]: e.target.value }))}
+                            placeholder={placeholder || (secret ? '••••••••' : '')}
+                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-textMain text-sm focus:outline-none focus:border-emerald-500 pr-10 placeholder:text-textMuted/40"
+                          />
+                          {secret && (
+                            <button
+                              type="button"
+                              onClick={() => setShown(s => ({ ...s, [key]: !s[key] }))}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textMain transition-colors"
+                            >
+                              <Lock className={`w-4 h-4 ${shown[key] ? '' : 'opacity-40'}`} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {note && (
+                      <div className="flex items-start gap-2 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 mt-1">
+                        <span className="mt-0.5 shrink-0">ℹ</span>
+                        <span>{note}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error}</p>}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-border shrink-0">
+          {confirmSave ? (
+            <>
+              <p className="text-sm text-amber-400 mr-auto">Saving will reload the app — unsaved work will be lost.</p>
+              <Button variant="ghost" onClick={() => setConfirmSave(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={saving} icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}>
+                {saving ? 'Saving...' : 'Yes, save & reload'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button onClick={() => setConfirmSave(true)} disabled={loading} icon={<Save className="w-4 h-4" />}>
+                Save Changes
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
