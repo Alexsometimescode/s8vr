@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 export interface SignUpData {
   email: string;
@@ -86,6 +86,7 @@ export const signOut = async () => {
  * @returns The current session or null if not authenticated
  */
 export const getSession = async () => {
+  if (!isSupabaseConfigured) return null;
   const { data: { session } } = await supabase.auth.getSession();
   return session;
 };
@@ -96,6 +97,9 @@ export const getSession = async () => {
  * @returns Subscription object with unsubscribe method
  */
 export const onAuthStateChange = (callback: (user: any) => void) => {
+  if (!isSupabaseConfigured) {
+    return { data: { subscription: { unsubscribe: () => {} } } };
+  }
   return supabase.auth.onAuthStateChange((_event, session) => {
     callback(session?.user ?? null);
   });
