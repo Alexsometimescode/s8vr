@@ -138,76 +138,9 @@ app.get('/api', (req, res) => {
       health: '/health',
       api: '/api',
       sendInvoice: 'POST /api/send-invoice',
-      stripeConnect: '/api/connect/*',
-      waitlist: 'POST /api/waitlist',
       marketing: 'GET /api/marketing/email-list'
     }
   });
-});
-
-// Waitlist endpoint - Add email to waitlist
-app.post('/api/waitlist', async (req, res) => {
-  try {
-    const { email, name } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ success: false, error: 'Email is required' });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ success: false, error: 'Invalid email format' });
-    }
-
-    // Check if email already exists in waitlist
-    const { data: existing } = await supabase
-      .from('waitlist')
-      .select('id, email, status')
-      .eq('email', email.toLowerCase().trim())
-      .single();
-
-    if (existing) {
-      return res.json({ 
-        success: true, 
-        message: 'You are already on the waitlist!',
-        alreadyExists: true 
-      });
-    }
-
-    // Add to waitlist
-    const { data, error } = await supabase
-      .from('waitlist')
-      .insert({
-        email: email.toLowerCase().trim(),
-        name: name || null,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Waitlist insert error:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to add to waitlist. Please try again.' 
-      });
-    }
-
-    res.json({ 
-      success: true, 
-      message: 'You have been added to the waitlist! We will notify you when beta access is available.',
-      data 
-    });
-
-  } catch (error: any) {
-    console.error('Waitlist error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Internal server error' 
-    });
-  }
 });
 
 // --- PAYMENT ROUTES ---
@@ -877,18 +810,6 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
       break;
     }
 
-    case 'account.updated': {
-      // Handle Connect account updates
-      const account = event.data.object as Stripe.Account;
-      const newStatus = account.details_submitted && account.charges_enabled ? 'active' : 'pending';
-
-      await supabase
-        .from('users')
-        .update({ stripe_account_status: newStatus })
-        .eq('stripe_account_id', account.id);
-      break;
-    }
-
     default:
       // Unhandled event type - no action needed
       break;
@@ -910,11 +831,10 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req: Authent
     const supabase = createClient(supabaseUrl!, supabaseKey!);
 
     // Get user counts
-    const { data: users } = await supabase.from('users').select('id, plan, stripe_account_status, created_at');
+    const { data: users } = await supabase.from('users').select('id, plan, created_at');
     const totalUsers = users?.length || 0;
     const proUsers = users?.filter(u => u.plan === 'pro').length || 0;
-    const connectedStripeAccounts = users?.filter(u => u.stripe_account_status === 'active').length || 0;
-    
+
     // Recent signups (last 7 days)
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -944,7 +864,6 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req: Authent
         paidInvoices,
         pendingInvoices,
         overdueInvoices,
-        connectedStripeAccounts,
         recentSignups,
         monthlyGrowth: 0 // Could calculate from historical data
       }
@@ -965,7 +884,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req: Authent
 
     const { data: users, error } = await supabase
       .from('users')
-      .select('id, email, name, plan, role, stripe_account_status, created_at, is_banned, ban_reason')
+      .select('id, email, name, plan, role, created_at, is_banned, ban_reason')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

@@ -17,7 +17,6 @@ interface User {
   name: string;
   plan: 'free' | 'pro';
   role: 'user' | 'admin';
-  stripe_account_status: string;
   created_at: string;
   is_banned?: boolean;
   ban_reason?: string;
@@ -43,7 +42,6 @@ interface AdminStats {
   paidInvoices: number;
   pendingInvoices: number;
   overdueInvoices: number;
-  connectedStripeAccounts: number;
   recentSignups: number;
 }
 
@@ -705,10 +703,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <div className="text-2xl font-bold text-red-500">{stats.overdueInvoices}</div>
                 <div className="text-xs text-textMuted">Overdue</div>
               </div>
-              <div className="bg-surfaceHighlight border border-border rounded-xl p-4 text-center">
-                <div className="text-2xl font-bold text-blue-500">{stats.connectedStripeAccounts}</div>
-                <div className="text-xs text-textMuted">Stripe Connected</div>
-              </div>
             </div>
           </div>
         )}
@@ -736,7 +730,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                     <th className="text-left px-6 py-4 text-xs font-bold text-textMuted uppercase tracking-wider">User</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-textMuted uppercase tracking-wider">Plan</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-textMuted uppercase tracking-wider">Role</th>
-                    <th className="text-left px-6 py-4 text-xs font-bold text-textMuted uppercase tracking-wider">Stripe</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-textMuted uppercase tracking-wider">Joined</th>
                     <th className="text-left px-6 py-4 text-xs font-bold text-textMuted uppercase tracking-wider">Actions</th>
                   </tr>
@@ -795,15 +788,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
                         </select>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          user.stripe_account_status === 'active' 
-                            ? 'bg-emerald-500/10 text-emerald-500' 
-                            : 'bg-yellow-500/10 text-yellow-500'
-                        }`}>
-                          {user.stripe_account_status || 'Not connected'}
-                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-textMuted">
                         {new Date(user.created_at).toLocaleDateString()}
@@ -1288,10 +1272,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 <div className="bg-surfaceHighlight rounded-lg p-3">
                   <div className="text-xs text-textMuted mb-1">Role</div>
                   <div className="font-medium capitalize">{selectedUser.role}</div>
-                </div>
-                <div className="bg-surfaceHighlight rounded-lg p-3">
-                  <div className="text-xs text-textMuted mb-1">Stripe Status</div>
-                  <div className="font-medium capitalize">{selectedUser.stripe_account_status || 'Not connected'}</div>
                 </div>
                 <div className="bg-surfaceHighlight rounded-lg p-3">
                   <div className="text-xs text-textMuted mb-1">Joined</div>
