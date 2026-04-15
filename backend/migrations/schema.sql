@@ -164,100 +164,32 @@ CREATE TRIGGER update_reminder_configs_updated_at
   BEFORE UPDATE ON reminder_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ── Row Level Security ────────────────────────────────────────────────────────
+-- s8vr is a self-hosted single-user local app. There is no Supabase Auth.
+-- The backend uses the service role key (bypasses RLS entirely).
+-- The frontend uses the anon key with permissive policies — security is
+-- provided by CORS being locked to localhost in the backend.
 
-ALTER TABLE users           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clients         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invoice_items   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_logs      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clients          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_items    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_logs       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reminder_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE feedback        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE templates       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE banned_emails   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE templates        ENABLE ROW LEVEL SECURITY;
 
--- Users
-DROP POLICY IF EXISTS "Users can view own profile"   ON users;
-DROP POLICY IF EXISTS "Users can update own profile" ON users;
-DROP POLICY IF EXISTS "Users can insert own profile" ON users;
+-- Permissive policies for local anon-key access
+DROP POLICY IF EXISTS "local full access" ON clients;
+DROP POLICY IF EXISTS "local full access" ON invoices;
+DROP POLICY IF EXISTS "local full access" ON invoice_items;
+DROP POLICY IF EXISTS "local full access" ON email_logs;
+DROP POLICY IF EXISTS "local full access" ON reminder_configs;
+DROP POLICY IF EXISTS "local full access" ON feedback;
+DROP POLICY IF EXISTS "local full access" ON templates;
 
-CREATE POLICY "Users can view own profile"   ON users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
-
--- Clients
-DROP POLICY IF EXISTS "Users can view own clients"   ON clients;
-DROP POLICY IF EXISTS "Users can insert own clients" ON clients;
-DROP POLICY IF EXISTS "Users can update own clients" ON clients;
-DROP POLICY IF EXISTS "Users can delete own clients" ON clients;
-
-CREATE POLICY "Users can view own clients"   ON clients FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own clients" ON clients FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own clients" ON clients FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own clients" ON clients FOR DELETE USING (auth.uid() = user_id);
-
--- Invoices
-DROP POLICY IF EXISTS "Users can view own invoices"   ON invoices;
-DROP POLICY IF EXISTS "Users can insert own invoices" ON invoices;
-DROP POLICY IF EXISTS "Users can update own invoices" ON invoices;
-DROP POLICY IF EXISTS "Users can delete own invoices" ON invoices;
-
-CREATE POLICY "Users can view own invoices"   ON invoices FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own invoices" ON invoices FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own invoices" ON invoices FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own invoices" ON invoices FOR DELETE USING (auth.uid() = user_id);
-
--- Invoice items
-DROP POLICY IF EXISTS "Users can view own invoice items"   ON invoice_items;
-DROP POLICY IF EXISTS "Users can insert own invoice items" ON invoice_items;
-DROP POLICY IF EXISTS "Users can update own invoice items" ON invoice_items;
-DROP POLICY IF EXISTS "Users can delete own invoice items" ON invoice_items;
-
-CREATE POLICY "Users can view own invoice items" ON invoice_items FOR SELECT USING (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_items.invoice_id AND invoices.user_id = auth.uid())
-);
-CREATE POLICY "Users can insert own invoice items" ON invoice_items FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_items.invoice_id AND invoices.user_id = auth.uid())
-);
-CREATE POLICY "Users can update own invoice items" ON invoice_items FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_items.invoice_id AND invoices.user_id = auth.uid())
-);
-CREATE POLICY "Users can delete own invoice items" ON invoice_items FOR DELETE USING (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = invoice_items.invoice_id AND invoices.user_id = auth.uid())
-);
-
--- Email logs
-DROP POLICY IF EXISTS "Users can view own email logs"   ON email_logs;
-DROP POLICY IF EXISTS "Users can insert own email logs" ON email_logs;
-
-CREATE POLICY "Users can view own email logs" ON email_logs FOR SELECT USING (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = email_logs.invoice_id AND invoices.user_id = auth.uid())
-);
-CREATE POLICY "Users can insert own email logs" ON email_logs FOR INSERT WITH CHECK (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = email_logs.invoice_id AND invoices.user_id = auth.uid())
-);
-
--- Reminder configs
-DROP POLICY IF EXISTS "Users can view own reminder configs"   ON reminder_configs;
-DROP POLICY IF EXISTS "Users can manage own reminder configs" ON reminder_configs;
-
-CREATE POLICY "Users can view own reminder configs" ON reminder_configs FOR SELECT USING (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = reminder_configs.invoice_id AND invoices.user_id = auth.uid())
-);
-CREATE POLICY "Users can manage own reminder configs" ON reminder_configs FOR ALL USING (
-  EXISTS (SELECT 1 FROM invoices WHERE invoices.id = reminder_configs.invoice_id AND invoices.user_id = auth.uid())
-);
-
--- Feedback
-DROP POLICY IF EXISTS "Users can insert feedback"    ON feedback;
-DROP POLICY IF EXISTS "Users can view own feedback"  ON feedback;
-
-CREATE POLICY "Users can insert feedback"   ON feedback FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Users can view own feedback" ON feedback FOR SELECT USING (auth.uid() = user_id);
-
--- Templates (public read)
-DROP POLICY IF EXISTS "Templates are viewable by everyone" ON templates;
-CREATE POLICY "Templates are viewable by everyone" ON templates FOR SELECT USING (true);
-
--- Banned emails (service role only)
-DROP POLICY IF EXISTS "Service role can manage banned emails" ON banned_emails;
-CREATE POLICY "Service role can manage banned emails" ON banned_emails FOR ALL USING (true);
+CREATE POLICY "local full access" ON clients         FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "local full access" ON invoices        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "local full access" ON invoice_items   FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "local full access" ON email_logs      FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "local full access" ON reminder_configs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "local full access" ON feedback        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "local full access" ON templates       FOR ALL USING (true) WITH CHECK (true);

@@ -1,23 +1,13 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getReminderEmailTemplate, getInvoiceEmailTemplate, getWelcomeEmailTemplate } from './emailTemplates';
 import { generateInvoicePdf } from './invoicePdf';
-
-// Extend Express Request to include user info
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
 
 // Load environment variables
 dotenv.config();
@@ -40,86 +30,24 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
   apiVersion: '2023-10-16',
 }) : null;
 
-// Middleware
+// Middleware — CORS locked to localhost (security boundary for self-hosted local app)
+const LOCALHOST_ORIGINS = [
+  'http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173',
+  'http://127.0.0.1:3000', 'http://127.0.0.1:5173',
+];
 app.use(cors({
-  origin: true, // Allow all origins for now to fix CORS issues during dev
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, same-origin) and localhost
+    if (!origin || LOCALHOST_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// ============================================
-// AUTHENTICATION MIDDLEWARE
-// ============================================
-
-/**
- * Middleware to authenticate JWT token from Authorization header
- * Verifies Supabase JWT and attaches user info to request
- */
-const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  try {
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      console.error('JWT_SECRET not configured');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    // Verify the JWT token
-    const decoded = jwt.verify(token, jwtSecret) as { sub: string; email?: string };
-
-    // Get user from database to verify they exist and get their role
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, email, role')
-      .eq('id', decoded.sub)
-      .single();
-
-    if (error || !user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-
-    // Attach user info to request
-    req.user = {
-      id: user.id,
-      email: user.email,
-      role: user.role || 'user'
-    };
-
-    next();
-  } catch (err: any) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
-    }
-    if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    console.error('Auth middleware error:', err);
-    return res.status(401).json({ error: 'Authentication failed' });
-  }
-};
-
-/**
- * Middleware to require admin role
- * Must be used after authenticateToken middleware
- */
-const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-
-  next();
-};
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -603,7 +531,7 @@ app.post('/api/invoice/:id/verify-payment', async (req, res) => {
 });
 
 // Download invoice as PDF
-app.get('/api/invoice/:id/pdf', authenticateToken, async (req: AuthenticatedRequest, res) => {
+app.get('/api/invoice/:id/pdf', async (req: Request, res) => {
   try {
     const { id } = req.params;
 
@@ -611,18 +539,16 @@ app.get('/api/invoice/:id/pdf', authenticateToken, async (req: AuthenticatedRequ
       .from('invoices')
       .select(`*, invoice_items(*), clients(*)`)
       .eq('id', id)
-      .eq('user_id', req.user!.id)
       .single();
 
     if (error || !invoice) {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('name, email, logo_url, avatar_url')
-      .eq('id', req.user!.id)
-      .single();
+    // Profile is passed from frontend via query params for PDF generation
+    const senderName = (req.query.senderName as string) || '';
+    const senderEmail = (req.query.senderEmail as string) || '';
+    const senderLogo = (req.query.senderLogo as string) || undefined;
 
     const pdfBuffer = await generateInvoicePdf({
       invoiceNumber: invoice.invoice_number,
@@ -636,9 +562,9 @@ app.get('/api/invoice/:id/pdf', authenticateToken, async (req: AuthenticatedRequ
       issueDate: invoice.issue_date,
       dueDate: invoice.due_date,
       currency: invoice.currency,
-      senderName: userProfile?.name,
-      senderEmail: userProfile?.email,
-      senderLogo: userProfile?.logo_url || userProfile?.avatar_url,
+      senderName,
+      senderEmail,
+      senderLogo,
     });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -652,7 +578,7 @@ app.get('/api/invoice/:id/pdf', authenticateToken, async (req: AuthenticatedRequ
 });
 
 // Sync payment status for all pending invoices against Stripe
-app.post('/api/invoices/sync-payments', authenticateToken, async (req: AuthenticatedRequest, res) => {
+app.post('/api/invoices/sync-payments', async (req: Request, res) => {
   try {
     if (!stripe) {
       return res.json({ success: true, updated: [] });
@@ -661,7 +587,6 @@ app.post('/api/invoices/sync-payments', authenticateToken, async (req: Authentic
     const { data: invoices, error } = await supabase
       .from('invoices')
       .select('id, invoice_number, checkout_url, amount')
-      .eq('user_id', req.user!.id)
       .in('status', ['pending', 'overdue'])
       .not('checkout_url', 'is', null);
 
@@ -823,7 +748,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 // ============================================
 
 // Get admin stats
-app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/admin/stats', async (req: Request, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -875,7 +800,7 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req: Authent
 });
 
 // Get all users
-app.get('/api/admin/users', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/admin/users', async (req: Request, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -897,7 +822,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req: Authent
 });
 
 // Update user plan
-app.put('/api/admin/users/:userId/plan', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.put('/api/admin/users/:userId/plan', async (req: Request, res) => {
   try {
     const { userId } = req.params;
     const { plan } = req.body;
@@ -922,7 +847,7 @@ app.put('/api/admin/users/:userId/plan', authenticateToken, requireAdmin, async 
 });
 
 // Get all feedback
-app.get('/api/admin/feedback', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/admin/feedback', async (req: Request, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -962,7 +887,7 @@ app.get('/api/admin/feedback', authenticateToken, requireAdmin, async (req: Auth
 });
 
 // Update feedback status
-app.put('/api/admin/feedback/:feedbackId/status', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.put('/api/admin/feedback/:feedbackId/status', async (req: Request, res) => {
   try {
     const { feedbackId } = req.params;
     const { status } = req.body;
@@ -987,7 +912,7 @@ app.put('/api/admin/feedback/:feedbackId/status', authenticateToken, requireAdmi
 });
 
 // Get reminder logs
-app.get('/api/admin/reminder-logs', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/admin/reminder-logs', async (req: Request, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -1060,7 +985,7 @@ app.get('/api/admin/reminder-logs', authenticateToken, requireAdmin, async (req:
 });
 
 // Get all invoices (admin)
-app.get('/api/admin/invoices', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/admin/invoices', async (req: Request, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -1098,7 +1023,7 @@ app.get('/api/admin/invoices', authenticateToken, requireAdmin, async (req: Auth
 });
 
 // Update invoice status (admin)
-app.put('/api/admin/invoices/:invoiceId/status', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.put('/api/admin/invoices/:invoiceId/status', async (req: Request, res) => {
   try {
     const { invoiceId } = req.params;
     const { status } = req.body;
@@ -1126,7 +1051,7 @@ app.put('/api/admin/invoices/:invoiceId/status', authenticateToken, requireAdmin
 });
 
 // Delete invoice (admin)
-app.delete('/api/admin/invoices/:invoiceId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.delete('/api/admin/invoices/:invoiceId', async (req: Request, res) => {
   try {
     const { invoiceId } = req.params;
 
@@ -1152,7 +1077,7 @@ app.delete('/api/admin/invoices/:invoiceId', authenticateToken, requireAdmin, as
 });
 
 // Update user role (admin)
-app.put('/api/admin/users/:userId/role', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.put('/api/admin/users/:userId/role', async (req: Request, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;
@@ -1177,7 +1102,7 @@ app.put('/api/admin/users/:userId/role', authenticateToken, requireAdmin, async 
 });
 
 // Delete user (admin)
-app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.delete('/api/admin/users/:userId', async (req: Request, res) => {
   try {
     const { userId } = req.params;
 
@@ -1200,7 +1125,7 @@ app.delete('/api/admin/users/:userId', authenticateToken, requireAdmin, async (r
 });
 
 // Send password reset email (admin)
-app.post('/api/admin/users/:userId/reset-password', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.post('/api/admin/users/:userId/reset-password', async (req: Request, res) => {
   try {
     const { email } = req.body;
 
@@ -1399,7 +1324,7 @@ app.post('/api/reminders/process', async (req, res) => {
 // ============================================
 
 // Marketing endpoint - Get users who have opted in for email notifications (admin only)
-app.get('/api/marketing/email-list', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/marketing/email-list', async (req: Request, res) => {
   try {
     // Query users who have email_notifications enabled
     const { data: users, error } = await supabase
@@ -1435,7 +1360,7 @@ app.get('/api/marketing/email-list', authenticateToken, requireAdmin, async (req
   }
 });
 
-app.get('/api/admin/templates', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.get('/api/admin/templates', async (req: Request, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -1472,7 +1397,7 @@ app.get('/api/admin/templates', authenticateToken, requireAdmin, async (req: Aut
 });
 
 // Create template
-app.post('/api/admin/templates', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.post('/api/admin/templates', async (req: Request, res) => {
   try {
     const { name, description, is_premium } = req.body;
 
@@ -1497,7 +1422,7 @@ app.post('/api/admin/templates', authenticateToken, requireAdmin, async (req: Au
 });
 
 // Update template
-app.put('/api/admin/templates/:templateId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.put('/api/admin/templates/:templateId', async (req: Request, res) => {
   try {
     const { templateId } = req.params;
     const updates = req.body;
@@ -1522,7 +1447,7 @@ app.put('/api/admin/templates/:templateId', authenticateToken, requireAdmin, asy
 });
 
 // Delete template
-app.delete('/api/admin/templates/:templateId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.delete('/api/admin/templates/:templateId', async (req: Request, res) => {
   try {
     const { templateId } = req.params;
 
@@ -1547,7 +1472,7 @@ app.delete('/api/admin/templates/:templateId', authenticateToken, requireAdmin, 
 // ============================================
 
 // Ban user
-app.post('/api/admin/users/:userId/ban', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.post('/api/admin/users/:userId/ban', async (req: Request, res) => {
   try {
     const { userId } = req.params;
     const { email, reason } = req.body;
@@ -1588,7 +1513,7 @@ app.post('/api/admin/users/:userId/ban', authenticateToken, requireAdmin, async 
 });
 
 // Unban user
-app.post('/api/admin/users/:userId/unban', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.post('/api/admin/users/:userId/unban', async (req: Request, res) => {
   try {
     const { userId } = req.params;
     const { email } = req.body;
@@ -1628,7 +1553,7 @@ app.post('/api/admin/users/:userId/unban', authenticateToken, requireAdmin, asyn
 // ============================================
 
 // Delete reminder log
-app.delete('/api/admin/reminder-logs/:reminderId', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
+app.delete('/api/admin/reminder-logs/:reminderId', async (req: Request, res) => {
   try {
     const { reminderId } = req.params;
 

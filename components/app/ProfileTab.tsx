@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Shared';
 import { Save, Upload, Loader2, Calendar, ExternalLink } from 'lucide-react';
-import { supabase } from '../../src/lib/supabase';
+import { saveProfile } from '../../src/lib/profile';
 
 interface ProfileTabProps {
   userProfile: any;
@@ -56,48 +56,28 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleSaveProfile = async () => {
-    if (!userProfile?.id || !editingProfile) return;
-    
+    if (!editingProfile) return;
+
     setSaving(true);
     setSaveMessage(null);
-    
+
     try {
-      // Use base64 previews directly (simpler than storage buckets for MVP)
-      let avatarUrl = avatarPreview || editingProfile.avatar_url;
-      let logoUrl = logoPreview || editingProfile.logo_url;
+      const avatarUrl = avatarPreview || editingProfile.avatar_url;
+      const logoUrl = logoPreview || editingProfile.logo_url;
 
-      // Upsert profile in database (insert if not exists, update if exists)
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id: userProfile.id,
-          email: userProfile.email,
-          name: editingProfile.name,
-          avatar_url: avatarUrl,
-          logo_url: logoUrl,
-          created_at: userProfile.created_at || new Date().toISOString(),
-        }, {
-          onConflict: 'id'
-        });
+      saveProfile({
+        ...userProfile,
+        name: editingProfile.name,
+        avatar_url: avatarUrl,
+        logo_url: logoUrl,
+      });
 
-      if (error) {
-        console.error('Profile save error:', error);
-        setSaveMessage({ type: 'error', text: 'Failed to save: ' + error.message });
-        return;
-      }
+      if (onRefresh) await onRefresh();
 
-      // Refresh profile
-      if (onRefresh) {
-        await onRefresh();
-      }
-      
       setAvatarFile(null);
       setLogoFile(null);
       setSaveMessage({ type: 'success', text: 'Profile saved successfully!' });
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setSaveMessage(null), 3000);
-      
     } catch (error: any) {
       console.error('Error updating profile:', error);
       setSaveMessage({ type: 'error', text: error.message || 'Failed to update profile' });
@@ -188,7 +168,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, onRefresh }
         <div className="relative z-10 p-8 border-b border-white/10">
           <label className="block text-[12px] font-medium text-textMuted uppercase tracking-wider mb-3">Email Address</label>
           <span className="text-[16px] text-textMain">{editingProfile?.email || 'No email'}</span>
-          <p className="text-[12px] text-textMuted mt-1">To change your email, update it in your Supabase Auth dashboard.</p>
+          <p className="text-[12px] text-textMuted mt-1">This email is used as the sender on invoice emails.</p>
         </div>
 
         {/* Company Logo Section */}

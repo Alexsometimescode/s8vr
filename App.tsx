@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { onAuthStateChange, getSession, signOut } from './src/lib/auth';
+import { getProfile, saveProfile, getOwnerId, Profile } from './src/lib/profile';
 import { fetchInvoices, createInvoice, updateInvoice, updateInvoiceAccessToken } from './src/lib/invoices';
 import { fetchClients, Client } from './src/lib/clients';
 import { sendInvoiceEmail } from './src/lib/email';
-import { Login } from './components/auth/Login';
 import Dashboard from './components/app/Dashboard';
 import { InvoiceBuilder, ClientInvoiceView, InvoiceModal } from './components/app/InvoiceBuilder';
 import AdminDashboard from './components/app/AdminDashboard';
 import { ViewState, Invoice } from './types';
-import { supabase } from './src/lib/supabase';
 import { DashboardSkeleton } from './components/ui/Skeleton';
-import { AlertCircle, CheckCircle, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, X, ArrowRight } from 'lucide-react';
 
-// Global Toast/Notification Component
+// ── Toast ────────────────────────────────────────────────────────────────────
 interface ToastMessage {
   id: string;
   type: 'error' | 'success' | 'info';
@@ -22,7 +20,7 @@ interface ToastMessage {
 
 const Toast: React.FC<{ toast: ToastMessage; onClose: (id: string) => void }> = ({ toast, onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(() => onClose(toast.id), 5000); // Auto dismiss after 5s
+    const timer = setTimeout(() => onClose(toast.id), 5000);
     return () => clearTimeout(timer);
   }, [toast.id, onClose]);
 
@@ -50,17 +48,90 @@ const Toast: React.FC<{ toast: ToastMessage; onClose: (id: string) => void }> = 
   );
 };
 
+// ── First-run setup ───────────────────────────────────────────────────────────
+const FirstRunSetup: React.FC<{ onComplete: (p: Omit<Profile, 'id'>) => void }> = ({ onComplete }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) { setError('Name is required'); return; }
+    if (!email.trim() || !email.includes('@')) { setError('Valid email is required'); return; }
+    onComplete({
+      name: name.trim(),
+      email: email.trim(),
+      currency: 'USD',
+      invoice_number_format: 'YYMM-seq',
+      email_notifications: true,
+      created_at: new Date().toISOString(),
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
+            <span className="text-2xl font-bold text-emerald-400">s8</span>
+          </div>
+          <h1 className="text-2xl font-bold text-textMain">Welcome to s8vr</h1>
+          <p className="text-textMuted mt-2 text-sm">Set up your profile to get started</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-surface/20 border border-white/10 rounded-2xl p-8 space-y-5 backdrop-blur-xl">
+          <div>
+            <label className="block text-xs font-medium text-textMuted uppercase tracking-wider mb-2">Your Name</label>
+            <input
+              autoFocus
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Jane Smith"
+              className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-textMain placeholder:text-textMuted focus:border-emerald-500 focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-textMuted uppercase tracking-wider mb-2">Your Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="jane@example.com"
+              className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-textMain placeholder:text-textMuted focus:border-emerald-500 focus:outline-none transition-colors"
+            />
+            <p className="text-xs text-textMuted mt-1.5">Used as the "from" name on invoice emails</p>
+          </div>
+
+          {error && <p className="text-sm text-red-400">{error}</p>}
+
+          <button
+            type="submit"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl py-3 text-sm flex items-center justify-center gap-2 transition-colors"
+          >
+            Get started <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-textMuted mt-6">
+          Profile is stored locally on this device
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ── App ───────────────────────────────────────────────────────────────────────
 const App: React.FC = () => {
-  const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(getProfile());
   const [view, setView] = useState<ViewState>('dashboard');
   const [activeInvoiceId, setActiveInvoiceId] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
 
-  // Toast notification helper
   const showToast = (type: 'error' | 'success' | 'info', title: string, message: string) => {
     const id = crypto.randomUUID();
     setToasts(prev => [...prev, { id, type, title, message }]);
@@ -70,82 +141,25 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // Fetch user profile from database
-  const fetchUserProfile = async (authUser: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        // Fallback to auth user data if users table query fails (RLS issues)
-        setUserProfile({
-          id: authUser.id,
-          email: authUser.email,
-          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-          created_at: authUser.created_at,
-          plan: 'free',
-          role: 'user'
-        });
-      } else {
-        setUserProfile(data);
-      }
-    } catch (err) {
-      console.error('Profile fetch error:', err);
-      // Fallback
-      setUserProfile({
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.email?.split('@')[0] || 'User',
-        created_at: authUser.created_at,
-        plan: 'free',
-        role: 'user'
-      });
-    }
-  };
-
-  // Check auth state on mount
+  // Ensure dark mode
   useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await fetchUserProfile(session.user);
-      }
-      setLoading(false);
-    };
-
-    checkSession();
-
-    // Listen to auth changes
-    const { data: { subscription } } = onAuthStateChange(async (authUser) => {
-      setUser(authUser);
-      if (authUser) {
-        await fetchUserProfile(authUser);
-      } else {
-        setUserProfile(null);
-        setInvoices([]);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    document.documentElement.classList.add('dark');
+    document.body.classList.add('dark');
+    document.body.style.backgroundColor = '#09090b';
+    document.body.style.color = '#a1a1aa';
   }, []);
 
-  // Fetch invoices and clients when user is logged in
+  // Load data once profile is set
   useEffect(() => {
-    if (user?.id) {
+    if (profile) {
       loadInvoices();
       loadClients();
     }
-  }, [user]);
+  }, [profile?.id]);
 
   const loadInvoices = async () => {
-    if (!user?.id) return;
     try {
-      const data = await fetchInvoices(user.id);
+      const data = await fetchInvoices(getOwnerId());
       setInvoices(data);
     } catch (error) {
       console.error('Error loading invoices:', error);
@@ -153,23 +167,26 @@ const App: React.FC = () => {
   };
 
   const loadClients = async () => {
-    if (!user?.id) return;
     try {
-      const data = await fetchClients(user.id);
+      const data = await fetchClients(getOwnerId());
       setClients(data);
     } catch (error) {
       console.error('Error loading clients:', error);
     }
   };
 
-  // Ensure dark mode is always enabled
+  // Browser history sync
   useEffect(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    root.classList.add('dark');
-    body.classList.add('dark');
-    body.style.backgroundColor = '#09090b';
-    body.style.color = '#a1a1aa';
+    window.history.replaceState({ view, invoiceId: activeInvoiceId }, '');
+    const onPopState = (e: PopStateEvent) => {
+      if (e.state?.view) {
+        setView(e.state.view);
+        setActiveInvoiceId(e.state.invoiceId ?? null);
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   const navigate = (newView: ViewState, invoiceId?: string) => {
@@ -180,42 +197,18 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  // Sync browser back/forward with app view state
-  useEffect(() => {
-    // Set initial history entry so back button works from the first view
-    window.history.replaceState({ view, invoiceId: activeInvoiceId }, '');
-
-    const onPopState = (e: PopStateEvent) => {
-      if (e.state?.view) {
-        setView(e.state.view);
-        setActiveInvoiceId(e.state.invoiceId ?? null);
-        window.scrollTo(0, 0);
-      }
-    };
-
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
-
-  const handleOpenInvoice = (id: string) => {
-    setActiveInvoiceId(id);
-  };
+  const handleOpenInvoice = (id: string) => setActiveInvoiceId(id);
 
   const handleCreateInvoice = async (newInvoice: Invoice) => {
-    if (!user?.id) return;
     try {
-      // Ensure currency is set from userProfile if not in invoice
       const invoiceWithCurrency = {
         ...newInvoice,
-        currency: newInvoice.currency || userProfile?.currency || 'USD'
+        currency: newInvoice.currency || profile?.currency || 'USD',
       };
-      // Save invoice to database
-      const savedInvoice = await createInvoice(invoiceWithCurrency, user.id);
+      const savedInvoice = await createInvoice(invoiceWithCurrency, getOwnerId());
 
-      // Determine if user is premium
-      const isPremium = userProfile?.plan === 'pro' || userProfile?.plan === 'premium';
+      const isPremium = false; // local app, no plan gating
 
-      // Send invoice email with all required params
       const emailResult = await sendInvoiceEmail({
         to: newInvoice.clientEmail,
         clientName: newInvoice.clientName,
@@ -224,15 +217,14 @@ const App: React.FC = () => {
         dueDate: newInvoice.dueDate,
         issueDate: newInvoice.issueDate,
         items: newInvoice.items,
-        fromName: userProfile?.name || 'Your Business',
-        fromEmail: userProfile?.email || user.email || '',
-        userLogo: userProfile?.logo_url || userProfile?.avatar_url,
-        isPremium: isPremium,
+        fromName: profile?.name || 'Your Business',
+        fromEmail: profile?.email || '',
+        userLogo: profile?.logo_url || profile?.avatar_url,
+        isPremium,
         invoiceId: savedInvoice.id,
-        currency: newInvoice.currency || invoiceWithCurrency.currency,
+        currency: invoiceWithCurrency.currency,
       });
 
-      // Store the access token and checkout URL with the invoice
       if (emailResult.success && emailResult.accessToken) {
         await updateInvoiceAccessToken(savedInvoice.id, emailResult.accessToken);
       }
@@ -240,46 +232,48 @@ const App: React.FC = () => {
         await updateInvoice(savedInvoice.id, { checkoutUrl: emailResult.checkoutUrl } as any);
       }
 
-      await loadInvoices(); // Reload invoices
+      await loadInvoices();
       navigate('dashboard');
 
       if (emailResult.success) {
-        showToast('success', 'Invoice Sent!', `Invoice #${newInvoice.invoiceNumber} has been sent to ${newInvoice.clientEmail}`);
+        showToast('success', 'Invoice Sent!', `Invoice #${newInvoice.invoiceNumber} sent to ${newInvoice.clientEmail}`);
       } else {
         showToast('info', 'Invoice Saved', `Invoice created but email could not be sent: ${emailResult.error}`);
       }
     } catch (error: any) {
       console.error('Error creating invoice:', error);
-      showToast('error', 'Failed to Create Invoice', error.message || 'There was an error creating your invoice. Please try again.');
+      showToast('error', 'Failed to Create Invoice', error.message || 'There was an error creating your invoice.');
     }
   };
 
   const handlePayment = async (id: string) => {
     try {
-      await updateInvoice(id, {
-        status: 'paid',
-        paidAt: new Date().toISOString(),
-      });
-      await loadInvoices(); // Reload invoices
+      await updateInvoice(id, { status: 'paid', paidAt: new Date().toISOString() });
+      await loadInvoices();
     } catch (error) {
       console.error('Error updating invoice:', error);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      setUser(null);
-      setUserProfile(null);
-      setInvoices([]);
-      setView('dashboard');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+  const handleProfileUpdate = (updated: Profile) => {
+    setProfile(updated);
   };
 
+  // ── First-run setup ────────────────────────────────────────────────────────
+  if (!profile) {
+    return (
+      <div className="dark relative overflow-hidden min-h-screen">
+        <FirstRunSetup
+          onComplete={(p) => {
+            const saved = saveProfile(p);
+            setProfile(saved);
+          }}
+        />
+      </div>
+    );
+  }
 
-  // Admin Dashboard View
+  // ── Admin ──────────────────────────────────────────────────────────────────
   if (view === 'admin') {
     return (
       <div className="dark relative overflow-hidden min-h-screen">
@@ -288,29 +282,7 @@ const App: React.FC = () => {
     );
   }
 
-  // Show loading state with skeleton
-  if (loading) {
-    return (
-      <div className="dark relative overflow-hidden min-h-screen">
-        <DashboardSkeleton />
-      </div>
-    );
-  }
-
-  // Show auth pages if not logged in
-  if (!user) {
-    return (
-      <div className="dark relative overflow-hidden min-h-screen">
-        <Login
-          onSuccess={() => {
-            // Auth state change will handle this
-          }}
-        />
-      </div>
-    );
-  }
-
-  // Client View (legacy - kept for internal preview only)
+  // ── Client view (internal preview) ────────────────────────────────────────
   if (view === 'client-view' && activeInvoiceId) {
     const invoice = invoices.find(i => i.id === activeInvoiceId);
     if (!invoice) return <div>Invoice not found</div>;
@@ -323,60 +295,54 @@ const App: React.FC = () => {
     );
   }
 
-  // Create Invoice View
+  // ── Create invoice ─────────────────────────────────────────────────────────
   if (view === 'create-invoice') {
     return (
       <div className="dark relative overflow-hidden min-h-screen">
         <InvoiceBuilder
           onCancel={() => navigate('dashboard')}
           onSave={handleCreateInvoice}
-          userProfile={userProfile}
+          userProfile={profile}
           existingClients={clients}
         />
-        {/* Global Toast Notifications */}
         {toasts.length > 0 && (
           <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 max-w-md">
-            {toasts.map(toast => (
-              <Toast key={toast.id} toast={toast} onClose={removeToast} />
-            ))}
+            {toasts.map(toast => <Toast key={toast.id} toast={toast} onClose={removeToast} />)}
           </div>
         )}
       </div>
     );
   }
 
-  // Main Dashboard
+  // ── Dashboard ──────────────────────────────────────────────────────────────
   return (
     <div className="dark min-h-screen bg-background relative overflow-hidden">
       <Dashboard
         invoices={invoices}
-        onLogout={handleLogout}
+        onLogout={() => {}} // no-op — local app, no sessions
         onCreate={() => navigate('create-invoice')}
         onViewClient={handleOpenInvoice}
-        userProfile={userProfile}
+        userProfile={profile}
         onRefresh={async () => {
           await loadInvoices();
-          if (user) await fetchUserProfile(user);
+          setProfile(getProfile());
         }}
+        onProfileUpdate={handleProfileUpdate}
         onNavigateAdmin={() => navigate('admin')}
       />
 
-      {/* Invoice Modal Overlay */}
       {activeInvoiceId && view === 'dashboard' && (
         <InvoiceModal
           invoice={invoices.find(i => i.id === activeInvoiceId) as Invoice}
           onClose={() => setActiveInvoiceId(null)}
-          userProfile={userProfile}
+          userProfile={profile}
           onRefresh={async () => { await loadInvoices(); }}
         />
       )}
 
-      {/* Global Toast Notifications */}
       {toasts.length > 0 && (
         <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 max-w-md">
-          {toasts.map(toast => (
-            <Toast key={toast.id} toast={toast} onClose={removeToast} />
-          ))}
+          {toasts.map(toast => <Toast key={toast.id} toast={toast} onClose={removeToast} />)}
         </div>
       )}
     </div>

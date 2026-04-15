@@ -28,6 +28,7 @@ interface DashboardProps {
   onViewClient: (id: string) => void;
   userProfile?: any;
   onRefresh?: () => void;
+  onProfileUpdate?: (profile: any) => void;
   onNavigateAdmin?: () => void;
 }
 
@@ -309,7 +310,7 @@ const TIME_RANGES = [
   { id: 'custom', label: 'Custom Range' },
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onNavigateAdmin }) => {
+const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onViewClient, userProfile, onRefresh, onProfileUpdate, onNavigateAdmin }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'reminders' | 'clients' | 'reports' | 'preferences' | 'profile'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -385,13 +386,8 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   useEffect(() => {
     const syncPayments = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
         const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${API_URL}/api/invoices/sync-payments`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        const res = await fetch(`${API_URL}/api/invoices/sync-payments`, { method: 'POST' });
         const data = await res.json();
         if (data.updated?.length > 0 && onRefresh) onRefresh();
       } catch {
@@ -489,72 +485,27 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
   };
 
   const handleSaveProfile = async () => {
-    if (!userProfile?.id || !editingProfile) return;
-    
+    if (!editingProfile) return;
+
     setSavingProfile(true);
     try {
-      let avatarUrl = editingProfile.avatar_url;
-      let logoUrl = editingProfile.logo_url;
+      // Use base64 previews directly for avatar and logo
+      const avatarUrl = avatarPreview || editingProfile.avatar_url;
+      const logoUrl = logoPreview || editingProfile.logo_url;
 
-      // Upload avatar if changed
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, { upsert: true });
+      const { saveProfile } = await import('../../src/lib/profile');
+      const updated = saveProfile({
+        ...userProfile,
+        name: editingProfile.name,
+        avatar_url: avatarUrl,
+        logo_url: logoUrl,
+      });
 
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-        avatarUrl = publicUrl;
-      }
-
-      // Upload logo if changed
-      if (logoFile) {
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('logos')
-          .upload(fileName, logoFile, { upsert: true });
-
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('logos')
-          .getPublicUrl(fileName);
-        logoUrl = publicUrl;
-      }
-
-      // Update profile
-      const { error } = await supabase
-        .from('users')
-        .update({
-          name: editingProfile.name,
-          avatar_url: avatarUrl,
-          logo_url: logoUrl,
-        })
-        .eq('id', userProfile.id);
-
-      if (error) throw error;
-
-      // Refresh profile
-      const { data } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userProfile.id)
-        .single();
-
-      if (data) {
-        setEditingProfile(data);
-        setAvatarFile(null);
-        setLogoFile(null);
-        if (onRefresh) onRefresh();
-      }
+      setEditingProfile(updated);
+      setAvatarFile(null);
+      setLogoFile(null);
+      if (onProfileUpdate) onProfileUpdate(updated);
+      if (onRefresh) onRefresh();
       showToast('success', 'Profile Updated', 'Your profile has been saved successfully.');
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -570,26 +521,16 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
   // Save currency setting
   const handleSaveCurrency = async (newCurrency: string) => {
-    if (!userProfile?.id) return;
-    
     setSavingSettings(true);
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ currency: newCurrency })
-        .eq('id', userProfile.id);
-
-      if (error) throw error;
-
-      // Update local profile
-      if (onRefresh) {
-        await onRefresh();
-      }
+      const { saveProfile } = await import('../../src/lib/profile');
+      const updated = saveProfile({ ...userProfile, currency: newCurrency });
+      if (onProfileUpdate) onProfileUpdate(updated);
+      if (onRefresh) await onRefresh();
       showToast('success', 'Currency Updated', 'Your default currency has been saved.');
     } catch (error: any) {
       console.error('Error updating currency:', error);
       showToast('error', 'Update Failed', error.message || 'Failed to update currency. Please try again.');
-      // Revert on error
       setCurrency(userProfile?.currency || 'USD');
     } finally {
       setSavingSettings(false);
@@ -598,18 +539,11 @@ const Dashboard: React.FC<DashboardProps> = ({ invoices, onLogout, onCreate, onV
 
   // Save invoice number format setting
   const handleSaveInvoiceFormat = async (newFormat: string) => {
-    if (!userProfile?.id) return;
-    
     setSavingSettings(true);
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({ invoice_number_format: newFormat })
-        .eq('id', userProfile.id);
-
-      if (error) throw error;
-
-      // Update local profile
+      const { saveProfile } = await import('../../src/lib/profile');
+      const updated = saveProfile({ ...userProfile, invoice_number_format: newFormat });
+      if (onProfileUpdate) onProfileUpdate(updated);
       if (onRefresh) {
         await onRefresh();
       }

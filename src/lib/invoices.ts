@@ -156,16 +156,7 @@ export const createInvoice = async (invoice: Omit<Invoice, 'id'> & { clientName:
     }
   }
 
-  // Get user currency if not provided
-  let invoiceCurrency = invoice.currency;
-  if (!invoiceCurrency) {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('currency')
-      .eq('id', userId)
-      .single();
-    invoiceCurrency = userData?.currency || 'USD';
-  }
+  const invoiceCurrency = invoice.currency || 'USD';
 
   // Create invoice
   const { data: invoiceData, error: invoiceError } = await supabase
