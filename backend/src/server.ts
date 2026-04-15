@@ -49,6 +49,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Config secret middleware ───────────────────────────────────────────────────
+// Protects /api/config, /api/admin/*, and /api/marketing/* endpoints.
+// Set CONFIG_SECRET in backend/.env (the install wizard generates one automatically).
+// The frontend reads it from .env and sends it as the x-config-secret header.
+const requireConfigSecret = (req: Request, res: Response, next: Function) => {
+  const secret = process.env.CONFIG_SECRET;
+  if (!secret) {
+    // Not configured — block all access until it's set
+    return res.status(503).json({ error: 'CONFIG_SECRET not set in backend/.env' });
+  }
+  const provided = req.headers['x-config-secret'];
+  if (!provided || provided !== secret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+};
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -642,19 +659,18 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
   }
 
   if (!webhookSecret) {
-    console.warn('⚠️ Webhook secret not configured - skipping signature verification');
-    // In development, we can skip signature verification
+    console.error('STRIPE_WEBHOOK_SECRET is not set — refusing webhook request');
+    return res.status(503).json({ error: 'Webhook secret not configured. Set STRIPE_WEBHOOK_SECRET in backend/.env' });
+  }
+
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing stripe-signature header' });
   }
 
   let event: Stripe.Event;
 
   try {
-    if (webhookSecret && sig) {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } else {
-      // Development mode - parse body directly
-      event = JSON.parse(req.body.toString());
-    }
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -746,6 +762,10 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 // ============================================
 // ADMIN DASHBOARD ENDPOINTS
 // ============================================
+
+// All admin and marketing routes require the config secret
+app.use('/api/admin', requireConfigSecret);
+app.use('/api/marketing', requireConfigSecret);
 
 // Get admin stats
 app.get('/api/admin/stats', async (req: Request, res) => {
@@ -1621,29 +1641,30 @@ function writeEnvFile(filePath: string, values: Record<string, string>) {
   fs.writeFileSync(filePath, lines.join('\n') + '\n', 'utf8');
 }
 
-app.get('/api/config', (req, res) => {
+app.get('/api/config', requireConfigSecret, (req, res) => {
   try {
     const be = parseEnvFile(BACKEND_ENV);
     const fe = parseEnvFile(FRONTEND_ENV);
+    // Return only non-secret values for display. Secret keys are write-only.
     res.json({
-      supabaseUrl:         be.SUPABASE_URL                 || fe.VITE_SUPABASE_URL        || '',
-      supabaseAnonKey:     fe.VITE_SUPABASE_ANON_KEY       || '',
-      supabaseServiceKey:  be.SUPABASE_SERVICE_ROLE_KEY    || '',
-      databaseUrl:         be.DATABASE_URL                 || '',
-      stripePublishableKey: fe.VITE_STRIPE_PUBLISHABLE_KEY || be.STRIPE_PUBLISHABLE_KEY   || '',
-      stripeSecretKey:     be.STRIPE_SECRET_KEY            || '',
-      stripeWebhookSecret: be.STRIPE_WEBHOOK_SECRET        || '',
-      resendApiKey:        be.RESEND_API_KEY               || '',
-      fromEmail:           be.FROM_EMAIL                   || '',
-      appUrl:              be.FRONTEND_URL                 || '',
-      backendUrl:          fe.VITE_API_URL                 || '',
+      supabaseUrl:          be.SUPABASE_URL                 || fe.VITE_SUPABASE_URL       || '',
+      stripePublishableKey: fe.VITE_STRIPE_PUBLISHABLE_KEY  || be.STRIPE_PUBLISHABLE_KEY  || '',
+      fromEmail:            be.FROM_EMAIL                   || '',
+      appUrl:               be.FRONTEND_URL                 || '',
+      backendUrl:           fe.VITE_API_URL                 || '',
+      // Presence flags (true/false only — never the actual key values)
+      hasSupabaseAnonKey:      !!(fe.VITE_SUPABASE_ANON_KEY),
+      hasSupabaseServiceKey:   !!(be.SUPABASE_SERVICE_ROLE_KEY),
+      hasStripeSecretKey:      !!(be.STRIPE_SECRET_KEY),
+      hasStripeWebhookSecret:  !!(be.STRIPE_WEBHOOK_SECRET),
+      hasResendApiKey:         !!(be.RESEND_API_KEY),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/config', (req, res) => {
+app.post('/api/config', requireConfigSecret, (req, res) => {
   try {
     const {
       supabaseUrl, supabaseAnonKey, supabaseServiceKey, databaseUrl,

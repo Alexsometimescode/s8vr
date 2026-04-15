@@ -9,7 +9,19 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+const CONFIG_SECRET = (import.meta as any).env?.VITE_CONFIG_SECRET || '';
+
+/** Fetch wrapper that attaches the config secret header to all admin requests */
+const adminFetch = (url: string, options: RequestInit = {}) =>
+  fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-config-secret': CONFIG_SECRET,
+      ...(options.headers || {}),
+    },
+  });
 
 interface User {
   id: string;
@@ -113,12 +125,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     setLoading(true);
     try {
       const [statsRes, usersRes, feedbackRes, remindersRes, invoicesRes, templatesRes] = await Promise.all([
-        fetch(`${API_URL}/api/admin/stats`),
-        fetch(`${API_URL}/api/admin/users`),
-        fetch(`${API_URL}/api/admin/feedback`),
-        fetch(`${API_URL}/api/admin/reminder-logs`),
-        fetch(`${API_URL}/api/admin/invoices`),
-        fetch(`${API_URL}/api/admin/templates`),
+        adminFetch(\`\${API_URL}/api/admin/stats`),
+        adminFetch(\`\${API_URL}/api/admin/users`),
+        adminFetch(\`\${API_URL}/api/admin/feedback`),
+        adminFetch(\`\${API_URL}/api/admin/reminder-logs`),
+        adminFetch(\`\${API_URL}/api/admin/invoices`),
+        adminFetch(\`\${API_URL}/api/admin/templates`),
       ]);
 
       const [statsData, usersData, feedbackData, remindersData, invoicesData, templatesData] = await Promise.all([
@@ -149,8 +161,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleProcessReminders = async () => {
     setProcessingReminders(true);
     try {
-      await fetch(`${API_URL}/api/reminders/process`, { method: 'POST' });
-      const remindersRes = await fetch(`${API_URL}/api/admin/reminder-logs`);
+      await adminFetch(\`\${API_URL}/api/reminders/process`, { method: 'POST' });
+      const remindersRes = await adminFetch(\`\${API_URL}/api/admin/reminder-logs`);
       const remindersData = await remindersRes.json();
       if (remindersData.success) {
         setReminderLogs(remindersData.logs);
@@ -166,7 +178,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleUpdateUserPlan = async (userId: string, newPlan: 'free' | 'pro') => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_URL}/api/admin/users/${userId}/plan`, {
+      await adminFetch(\`\${API_URL}/api/admin/users/${userId}/plan`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: newPlan }),
@@ -182,7 +194,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleUpdateUserRole = async (userId: string, newRole: 'user' | 'admin') => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
+      await adminFetch(\`\${API_URL}/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
@@ -198,7 +210,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleDeleteUser = async (userId: string) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_URL}/api/admin/users/${userId}`, { method: 'DELETE' });
+      await adminFetch(\`\${API_URL}/api/admin/users/${userId}`, { method: 'DELETE' });
       setUsers(users.filter(u => u.id !== userId));
       setSelectedUser(null);
       setDeleteConfirm(null);
@@ -212,7 +224,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleSendPasswordReset = async (userId: string, email: string) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_URL}/api/admin/users/${userId}/reset-password`, {
+      await adminFetch(\`\${API_URL}/api/admin/users/${userId}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -228,7 +240,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
   const handleUpdateFeedbackStatus = async (feedbackId: string, newStatus: string) => {
     try {
-      await fetch(`${API_URL}/api/admin/feedback/${feedbackId}/status`, {
+      await adminFetch(\`\${API_URL}/api/admin/feedback/${feedbackId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -242,7 +254,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleDeleteInvoice = async (invoiceId: string) => {
     setActionLoading(invoiceId);
     try {
-      await fetch(`${API_URL}/api/admin/invoices/${invoiceId}`, { method: 'DELETE' });
+      await adminFetch(\`\${API_URL}/api/admin/invoices/${invoiceId}`, { method: 'DELETE' });
       setInvoices(invoices.filter(i => i.id !== invoiceId));
       setSelectedInvoice(null);
       setDeleteConfirm(null);
@@ -256,7 +268,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleUpdateInvoiceStatus = async (invoiceId: string, newStatus: string) => {
     setActionLoading(invoiceId);
     try {
-      await fetch(`${API_URL}/api/admin/invoices/${invoiceId}/status`, {
+      await adminFetch(\`\${API_URL}/api/admin/invoices/${invoiceId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -277,7 +289,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     }
     setActionLoading(userId);
     try {
-      await fetch(`${API_URL}/api/admin/users/${userId}/ban`, {
+      await adminFetch(\`\${API_URL}/api/admin/users/${userId}/ban`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, reason: banReason }),
@@ -295,7 +307,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleUnbanUser = async (userId: string, email: string) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API_URL}/api/admin/users/${userId}/unban`, {
+      await adminFetch(\`\${API_URL}/api/admin/users/${userId}/unban`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -313,7 +325,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleDeleteReminder = async (reminderId: string) => {
     setActionLoading(reminderId);
     try {
-      await fetch(`${API_URL}/api/admin/reminder-logs/${reminderId}`, { method: 'DELETE' });
+      await adminFetch(\`\${API_URL}/api/admin/reminder-logs/${reminderId}`, { method: 'DELETE' });
       setReminderLogs(reminderLogs.filter(r => r.id !== reminderId));
       setDeleteConfirm(null);
     } catch (err) {
@@ -330,7 +342,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     }
     setActionLoading('new-template');
     try {
-      const res = await fetch(`${API_URL}/api/admin/templates`, {
+      const res = await adminFetch(\`\${API_URL}/api/admin/templates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTemplate),
@@ -365,7 +377,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleUpdateTemplate = async (template: Template) => {
     setActionLoading(template.id);
     try {
-      const res = await fetch(`${API_URL}/api/admin/templates/${template.id}`, {
+      const res = await adminFetch(\`\${API_URL}/api/admin/templates/${template.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(template),
@@ -387,7 +399,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const handleDeleteTemplate = async (templateId: string) => {
     setActionLoading(templateId);
     try {
-      await fetch(`${API_URL}/api/admin/templates/${templateId}`, { method: 'DELETE' });
+      await adminFetch(\`\${API_URL}/api/admin/templates/${templateId}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Failed to delete template:', err);
     } finally {
@@ -402,7 +414,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     // Update local state immediately for responsiveness
     setTemplates(templates.map(t => t.id === templateId ? { ...t, is_premium: isPremium } : t));
     try {
-      await fetch(`${API_URL}/api/admin/templates/${templateId}`, {
+      await adminFetch(\`\${API_URL}/api/admin/templates/${templateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_premium: isPremium }),
@@ -416,7 +428,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     // Update local state immediately for responsiveness
     setTemplates(templates.map(t => t.id === templateId ? { ...t, is_active: isActive } : t));
     try {
-      await fetch(`${API_URL}/api/admin/templates/${templateId}`, {
+      await adminFetch(\`\${API_URL}/api/admin/templates/${templateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: isActive }),
@@ -438,7 +450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     setTemplates([...templates, copiedTemplate]);
     
     try {
-      const res = await fetch(`${API_URL}/api/admin/templates`, {
+      const res = await adminFetch(\`\${API_URL}/api/admin/templates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

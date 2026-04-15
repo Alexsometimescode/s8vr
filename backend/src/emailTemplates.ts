@@ -17,6 +17,15 @@ export interface EmailTemplateData {
   currency?: string;
 }
 
+/** Escape HTML special characters to prevent injection in email templates */
+const escHtml = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+
 // Font stack for email clients
 const fontStack = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
@@ -42,7 +51,7 @@ const getCleanInvoiceHtml = (data: {
 }) => {
   const statusBadge = data.statusBadge || '';
   const statusColor = data.statusColor || '#f59e0b';
-  const reportLink = data.reportLink || `https://s8vr.app/report/${data.invoiceNumber}`;
+  const reportLink = data.reportLink || `https://s8vr.app/report/${encodeURIComponent(data.invoiceNumber || '')}`;
   const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'CA$', AUD: 'A$', CHF: 'CHF ', NZD: 'NZ$' };
   const currencySymbol = data.currency ? (CURRENCY_SYMBOLS[(data.currency).toUpperCase()] ?? (data.currency.toUpperCase() + ' ')) : '$';
 
@@ -54,7 +63,7 @@ const getCleanInvoiceHtml = (data: {
           <table style="width: 100%; border-collapse: collapse;">
             ${data.items.map((item, i) => `
             <tr style="${i < data.items!.length - 1 ? 'border-bottom: 1px solid #3f3f46;' : ''}">
-              <td style="padding: 14px 16px; font-size: 14px; color: #e4e4e7;">${item.description}</td>
+              <td style="padding: 14px 16px; font-size: 14px; color: #e4e4e7;">${escHtml(item.description)}</td>
               <td style="padding: 14px 16px; font-size: 14px; color: #ffffff; font-weight: 600; text-align: right; white-space: nowrap;">${currencySymbol}${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
             </tr>`).join('')}
             ${data.items.length > 1 ? `
@@ -72,7 +81,7 @@ const getCleanInvoiceHtml = (data: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Invoice #${data.invoiceNumber} from ${data.senderName}</title>
+  <title>Invoice #${escHtml(data.invoiceNumber)} from ${escHtml(data.senderName)}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #09090b; font-family: ${fontStack}; -webkit-font-smoothing: antialiased;">
   <div style="max-width: 520px; margin: 0 auto; padding: 48px 24px;">
@@ -82,14 +91,14 @@ const getCleanInvoiceHtml = (data: {
 
       <!-- Header - Name and email only (no photo) -->
       <div style="padding: 32px 32px 24px 32px; border-bottom: 1px solid #27272a;">
-        <p style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${data.senderName}</p>
-        ${data.senderEmail ? `<a href="mailto:${data.senderEmail}" style="margin: 4px 0 0 0; font-size: 14px; color: #a1a1aa; text-decoration: none; display: block;">${data.senderEmail}</a>` : ''}
+        <p style="margin: 0; font-size: 18px; font-weight: 600; color: #ffffff;">${escHtml(data.senderName)}</p>
+        ${data.senderEmail ? `<a href="mailto:${escHtml(data.senderEmail)}" style="margin: 4px 0 0 0; font-size: 14px; color: #a1a1aa; text-decoration: none; display: block;">${escHtml(data.senderEmail)}</a>` : ''}
       </div>
 
       ${data.customMessage ? `
       <!-- Custom Message -->
       <div style="padding: 24px 32px; border-bottom: 1px solid #27272a;">
-        <p style="margin: 0; font-size: 14px; color: #a1a1aa; line-height: 1.6;">${data.customMessage}</p>
+        <p style="margin: 0; font-size: 14px; color: #a1a1aa; line-height: 1.6;">${escHtml(data.customMessage)}</p>
       </div>
       ` : ''}
 
@@ -98,26 +107,26 @@ const getCleanInvoiceHtml = (data: {
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 6px 0; font-size: 13px; color: #71717a; width: 50%;">Invoice</td>
-            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">#${data.invoiceNumber}</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">#${escHtml(data.invoiceNumber)}</td>
           </tr>
           <tr>
             <td style="padding: 6px 0; font-size: 13px; color: #71717a;">To</td>
-            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${data.recipientName}</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${escHtml(data.recipientName)}</td>
           </tr>
           ${data.issueDate ? `
           <tr>
             <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Issued</td>
-            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${data.issueDate}</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${escHtml(data.issueDate)}</td>
           </tr>` : ''}
           <tr>
             <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Due</td>
-            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${data.dueDaysText || data.dueDate}</td>
+            <td style="padding: 6px 0; font-size: 13px; color: #ffffff; text-align: right; font-weight: 500;">${escHtml(data.dueDaysText || data.dueDate)}</td>
           </tr>
           ${statusBadge ? `
           <tr>
             <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Status</td>
             <td style="padding: 6px 0; font-size: 13px; text-align: right;">
-              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: ${statusColor}20; color: ${statusColor};">${statusBadge}</span>
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: ${escHtml(statusColor)}20; color: ${escHtml(statusColor)};">${escHtml(statusBadge)}</span>
             </td>
           </tr>
           ` : ''}
@@ -130,21 +139,21 @@ const getCleanInvoiceHtml = (data: {
       <div style="padding: 28px 32px; text-align: center; border-top: 1px solid #27272a;">
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 1.5px;">Amount Due</p>
         <p style="margin: 0; font-size: 44px; font-weight: 700; color: #ffffff; letter-spacing: -1px;">${currencySymbol}${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-        <p style="margin: 10px 0 0 0; font-size: 13px; color: #71717a;">Due ${data.dueDate}</p>
+        <p style="margin: 10px 0 0 0; font-size: 13px; color: #71717a;">Due ${escHtml(data.dueDate)}</p>
       </div>
 
       <!-- Pay Button -->
       <div style="padding: 0 32px 32px 32px;">
-        <a href="${data.paymentLink}" style="display: block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center;">Pay Invoice</a>
+        <a href="${escHtml(data.paymentLink)}" style="display: block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center;">Pay Invoice</a>
       </div>
 
     </div>
-    
+
     <!-- Footer -->
     <div style="text-align: center; margin-top: 32px;">
       <p style="margin: 0 0 8px 0; font-size: 13px; color: #71717a;">
-        Questions? Reply to this email or contact 
-        <a href="mailto:${data.senderEmail || 'support@s8vr.app'}" style="color: #10b981; text-decoration: none;">${data.senderName}</a>
+        Questions? Reply to this email or contact
+        <a href="mailto:${escHtml(data.senderEmail || 'support@s8vr.app')}" style="color: #10b981; text-decoration: none;">${escHtml(data.senderName)}</a>
       </p>
       <p style="margin: 0 0 16px 0; font-size: 12px; color: #52525b;">
         Sent via <a href="https://s8vr.app" style="color: #71717a; text-decoration: none;">s8vr</a>
